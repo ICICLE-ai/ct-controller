@@ -35,18 +35,25 @@ class CLIParser:
         #parser.add_argument('--gpu', '-g')
         #parser.add_argument('--gpu-type')
         #parser.add_argument('--nnodes', '-N')
+        parser.add_argument('site', type=str, nargs=1, choices=['Chameleon', 'TACC'])
+        parser.add_argument('--user-name', '-u', type=str, required=True)
         subparsers = parser.add_subparsers(dest='subcommand')
 
         register_subparser = subparsers.add_parser('register')
         register_subparser.add_argument('-config-file', '-c', type=file_path)
 
-        provision_subparser = subparsers.add_parser('provision')
-        provision_subparser.add_argument('--cpu-type', type=str) # choices?
+        provision_subparser = subparsers.add_parser('provision', help='Provision hardware')
+        provision_subparser.add_argument('--cpu-type', type=str)
         provision_subparser.add_argument('--node_type', '-n', type=str)
         provision_subparser.add_argument('--gpu', '-g', type=bool, default=False)
         provision_subparser.add_argument('--nodes', '-N', type=int, default=1)
 
-        #run_subparser = subparsers.add_parser('run')
+        run_subparser = subparsers.add_parser('run', help='run on reserved hardware')
+        run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
+        run_subparser.add_argument('--ct-version', '-V', type=str, help='version of camera traps to run')
+
+        kill_subparser = subparsers.add_parser('kill')
+        kill_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
 
         check_subparser = subparsers.add_parser('check')
         check_subparser.add_argument('check_type', type=str, choices=subcommand_map.keys())

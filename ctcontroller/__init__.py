@@ -6,3 +6,5 @@ subcommand_map = {
     'ip': ['floating', 'ip'],
     'image': ['image']
 }
+
+CT_ROOT = '.ctcontroller'

@@ -7,10 +7,16 @@ class RemoteRunner():
         policy = paramiko.AutoAddPolicy()
         client.set_missing_host_key_policy(policy)
     
-        print("Connecting to server")
+        print(f"Connecting to server: {ip_address}")
         client.connect(ip_address, username=username, pkey=pkey)
+        self.ip_address = ip_address
         self.client = client
 
     def run(self, cmd: str) -> str:
-        stdin, stdout, stderr = self.client.exec_command(cmd)
-        return stdout.read().decode('utf-8').strip()
+        #stdin, stdout, stderr = self.client.exec_command(cmd)
+        print(f'Running {cmd} on remote server {self.ip_address}')
+        stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True)
+        for line in iter(stdout.readline, ""):
+            print(line, end="")
+        print(stderr.read().decode('utf-8'))
+        #return stdout.read().decode('utf-8').strip()
