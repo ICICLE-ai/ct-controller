@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+if __name__ == '__main__':
+    import sys
+    import os
+    HERE = os.path.realpath(os.path.dirname(__file__))
+    SRC = os.path.join(HERE, '..', 'ctcontroller')
+    sys.path.insert(0, SRC)
+    import ct_main
+    sys.exit(ct_main.main(sys.argv[1:]))
