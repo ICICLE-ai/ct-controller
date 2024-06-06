@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from __init__ import subcommand_map
 
 def file_path(path):
@@ -36,24 +37,29 @@ class CLIParser:
         #parser.add_argument('--gpu-type')
         #parser.add_argument('--nnodes', '-N')
         parser.add_argument('site', type=str, nargs=1, choices=['Chameleon', 'TACC'])
-        parser.add_argument('--user-name', '-u', type=str, required=True)
+        parser.add_argument('--user-name', '-u', type=str)
         subparsers = parser.add_subparsers(dest='subcommand')
 
         register_subparser = subparsers.add_parser('register')
-        register_subparser.add_argument('-config-file', '-c', type=file_path)
+        register_subparser.add_argument('--config-file', '-c', type=file_path)
+        register_subparser.add_argument('--key-name', '-k', type=str)
+        register_subparser.add_argument('--private-key', '-i', type=str)
 
         provision_subparser = subparsers.add_parser('provision', help='Provision hardware')
         provision_subparser.add_argument('--cpu-type', type=str)
         provision_subparser.add_argument('--node_type', '-n', type=str)
         provision_subparser.add_argument('--gpu', '-g', type=bool, default=False)
         provision_subparser.add_argument('--nodes', '-N', type=int, default=1)
+        provision_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job', default='my-app')
 
         run_subparser = subparsers.add_parser('run', help='run on reserved hardware')
-        run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
+        run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier', default='my-job')
+        run_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job', default='my-app')
         run_subparser.add_argument('--ct-version', '-V', type=str, help='version of camera traps to run')
 
         kill_subparser = subparsers.add_parser('kill')
-        kill_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
+        kill_subparser.add_argument('--job-id', '-j', type=str, help='job identifier to kill', default='my-job')
+        kill_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to delete', default='my-app')
 
         check_subparser = subparsers.add_parser('check')
         check_subparser.add_argument('check_type', type=str, choices=subcommand_map.keys())
@@ -66,4 +72,9 @@ class CLIParser:
 def parse_args(args):
     parser = CLIParser()
     parsed_args = parser.parse_args(args)
+    parsed_args.site = parsed_args.site[0]
+    if parsed_args.user_name is None and parsed_args.subcommand != 'register':
+        print('error: user name must be specified')
+        parser.parser.print_help()
+        sys.exit(1)
     return parsed_args

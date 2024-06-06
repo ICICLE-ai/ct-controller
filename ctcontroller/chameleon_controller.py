@@ -7,7 +7,7 @@ from controller import Controller
 #logger = logging.getLogger(__name__)
 
 class ChameleonController(Controller):
-    def __init__(self, site: str, provision_id: str, job_id: str, config_file: str=None, user_name: str=None):
+    def __init__(self, site: str, provision_id: str=None, job_id: str=None, config_file: str=None, user_name: str=None):
         self.lease_name = None
         self.ip_lease_name = None
         self.key_name = None
@@ -23,6 +23,7 @@ class ChameleonController(Controller):
         self.provision_id = provision_id
         self.job_id = job_id
         super(ChameleonController, self).__init__(site, config_file, user_name)
+        self.provision_dir = f'{self.user_dir}/provisions'
 
     def get_user_name(self, user_config_file):
         if user_config_file:
@@ -106,6 +107,10 @@ class ChameleonController(Controller):
     
     def get_lease_status(self, lease):
         cmd = ['openstack', 'reservation', 'lease', 'show', lease, '-c', 'status', '-f', 'value']
+        return self.capture_shell(cmd)
+
+    def get_server_status(self, server_name):
+        cmd = ['openstack', 'server', 'show', server_name, '-c', 'status', '-f', 'value']
         return self.capture_shell(cmd)
     
     def get_ip_leasename(self):
@@ -227,12 +232,21 @@ class ChameleonController(Controller):
             node_type = self.get_node_type(cpu, gpu)
         self.node_info = {'cpu': cpu, 'gpu': gpu, node_type: node_type}
     
-    def deploy_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
-        import sys
+    def set_provision_id(self):
+        import os
+        os.makedirs(self.provision_dir, exist_ok=True)
+        subdirs = [f.path for f in os.scandir(self.provision_dir) if f.is_dir()]
+        numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
+        self.provision_id = str(max(numbered_subdirs) + 1)
+        self.provision_dir += f'/{self.provision_id}'
+
+    def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
+        if self.provision_id is None:
+            self.set_provision_id()
         self.set_node_info(cpu, gpu, node_type)
-        #self.get_image_name()
-        #self.reserve_lease(nnodes, node_type)
-        #self.reserve_ip(nnodes)
+        self.get_image_name()
+        self.reserve_lease(nnodes, node_type)
+        self.reserve_ip(nnodes)
         #self.create_instance()
         #self.allocate_ip()
         #self.associate_ip()
