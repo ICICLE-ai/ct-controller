@@ -19,6 +19,9 @@ class Controller:
             self.set_config(config_file)
         self.env = os.environ
         self.user_cache = f'{self.user_dir}/cache.pcl'
+        if not self.load_user_cache():
+            self.setup_user()
+        self.save_user_cache()
 
     def use_existing_config(self):
         for dir in os.environ.get('CT_CONTROLLER_ROOT'), os.curdir, os.path.expanduser('~'):
@@ -46,9 +49,13 @@ class Controller:
             import shutil
             if not os.path.exists(self.user_dir):
                 os.makedirs(self.user_dir)
-            shutil.copy(config_file, self.config_file)
-            print(self.config_file)
-            print('finished copying')
+            if config_file and os.path.exists(config_file):
+                print(f'Copying {config_file} to {self.config_file}')
+                shutil.copy(config_file, self.config_file)
+            else:
+                import sys
+                print(f'Invalid config file: {config_file}. Pass the path to a valid config file during registration.')
+                sys.exit(1)
 
     def load_user_cache(self):
         if os.path.exists(self.user_cache):
@@ -63,13 +70,14 @@ class Controller:
         with open(self.user_cache, 'wb') as p:
             dump(dict(self.env), p, HIGHEST_PROTOCOL)
 
-    def read_config():
+    def setup_user():
         pass
 
-    def login(self):
-        if not self.load_user_cache():
-            self.read_config()
-        self.save_user_cache()
+    #def login(self):
+    #    if not self.load_user_cache():
+    #        self.setup_user()
+    #    self.save_user_cache()
+    #    print(f'ssh key: {self.ssh_key}'); import sys; sys.exit(1)
 
     #def search_config(self, config_file: str=None):
     #    if config_file:

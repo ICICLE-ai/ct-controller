@@ -17,7 +17,7 @@ def main(args: list):
 
     # If registering, initialize controller and return
     if parsed_args.subcommand == 'register':
-        controller = SiteController(parsed_args.site, config_file=parsed_args.config_file, user_name=parsed_args.user_name)
+        controller = SiteController(parsed_args.site, config_file=parsed_args.config_file, user_name=parsed_args.user_name, private_key=parsed_args.private_key, key_name=parsed_args.key_name)
         return
 
     if 'job_id' in parsed_args:
@@ -28,9 +28,10 @@ def main(args: list):
         provision_id = parsed_args.provision_id
     else:
         provision_id = None
-    controller = SiteController(parsed_args.site, provision_id=provision_id, job_id=job_id, user_name=parsed_args.user_name)
+    controller = SiteController(parsed_args.site, provision_id=provision_id, user_name=parsed_args.user_name)
 
-    controller.login()
+    #print('logging in...')
+    #controller.login()
 
     if parsed_args.subcommand == 'check':
         controller.run_check(parsed_args.check_type)
@@ -43,7 +44,12 @@ def main(args: list):
         ctmanager = AppManager(controller.runner, '0.3.3')
         start_job(ctmanager)
     if parsed_args.subcommand == 'kill':
-        shutdown_job(ctmanager)
+        ctmanager = AppManager(controller.runner, '0.3.3')
+        if parsed_args.provision_id:
+            shutdown_job(ctmanager)
+            controller.shutdown_instance(parsed_args.provision_id)
+        if parsed_args.job_id:
+            shutdown_job(ctmanager)
 
 if __name__ == '__main__':
     import sys

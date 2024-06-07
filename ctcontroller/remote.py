@@ -13,10 +13,6 @@ class RemoteRunner():
         self.client = client
 
     def run(self, cmd: str) -> str:
-        #stdin, stdout, stderr = self.client.exec_command(cmd)
         print(f'Running {cmd} on remote server {self.ip_address}')
-        stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True)
-        for line in iter(stdout.readline, ""):
-            print(line, end="")
-        print(stderr.read().decode('utf-8'))
-        #return stdout.read().decode('utf-8').strip()
+        _stdin, stdout, _stderr = self.client.exec_command(cmd, get_pty=True)
+        return stdout.read().decode('utf-8').strip()

@@ -50,16 +50,16 @@ class CLIParser:
         provision_subparser.add_argument('--node_type', '-n', type=str)
         provision_subparser.add_argument('--gpu', '-g', type=bool, default=False)
         provision_subparser.add_argument('--nodes', '-N', type=int, default=1)
-        provision_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job', default='my-app')
+        provision_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job')
 
         run_subparser = subparsers.add_parser('run', help='run on reserved hardware')
-        run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier', default='my-job')
-        run_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job', default='my-app')
+        run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
+        run_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job')
         run_subparser.add_argument('--ct-version', '-V', type=str, help='version of camera traps to run')
 
         kill_subparser = subparsers.add_parser('kill')
-        kill_subparser.add_argument('--job-id', '-j', type=str, help='job identifier to kill', default='my-job')
-        kill_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to delete', default='my-app')
+        kill_subparser.add_argument('--job-id', '-j', type=str, help='job identifier to kill')
+        kill_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to delete')
 
         check_subparser = subparsers.add_parser('check')
         check_subparser.add_argument('check_type', type=str, choices=subcommand_map.keys())
