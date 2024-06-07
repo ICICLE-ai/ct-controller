@@ -1,10 +1,10 @@
 from cli import parse_args
 
-def start_job(manager):
-    manager.docker_compose_up()
-
-def shutdown_job(manager):
-    manager.docker_compose_down()
+#def start_job(manager):
+#    manager.run_job()
+#
+#def shutdown_job(manager, job_id):
+#    manager.docker_compose_down()
 
 def main(args: list):
     parsed_args = parse_args(args)
@@ -17,7 +17,7 @@ def main(args: list):
 
     # If registering, initialize controller and return
     if parsed_args.subcommand == 'register':
-        controller = SiteController(parsed_args.site, config_file=parsed_args.config_file, user_name=parsed_args.user_name, private_key=parsed_args.private_key, key_name=parsed_args.key_name)
+        controller = SiteController(parsed_args.site, 'register', config_file=parsed_args.config_file, user_name=parsed_args.user_name, private_key=parsed_args.private_key, key_name=parsed_args.key_name)
         return
 
     if 'job_id' in parsed_args:
@@ -28,28 +28,25 @@ def main(args: list):
         provision_id = parsed_args.provision_id
     else:
         provision_id = None
-    controller = SiteController(parsed_args.site, provision_id=provision_id, user_name=parsed_args.user_name)
+    controller = SiteController(parsed_args.site, parsed_args.subcommand, provision_id=provision_id, user_name=parsed_args.user_name)
 
     #print('logging in...')
     #controller.login()
 
     if parsed_args.subcommand == 'check':
         controller.run_check(parsed_args.check_type)
-        return
-    if parsed_args.subcommand == 'provision':
+    elif parsed_args.subcommand == 'provision':
         controller.provision_instance(parsed_args.nodes, parsed_args.cpu_type, parsed_args.gpu, parsed_args.node_type)
-    if parsed_args.subcommand == 'run':
+    elif parsed_args.subcommand == 'run':
         if parsed_args.provision_id is None:
             controller.provision_instance(parsed_args.nodes, parsed_args.cpu_type, parsed_args.gpu, parsed_args.node_type)
-        ctmanager = AppManager(controller.runner, '0.3.3')
-        start_job(ctmanager)
-    if parsed_args.subcommand == 'kill':
-        ctmanager = AppManager(controller.runner, '0.3.3')
+        ctmanager = AppManager(controller.get_remote_runner(), parsed_args.ct_version, provision_id=provision_id, top_log_dir=controller.provision_dir, branch=parsed_args.branch)
+        job_id = ctmanager.run_job()
+    elif parsed_args.subcommand == 'kill':
+        ctmanager = AppManager(controller.get_remote_runner(), None, provision_id=provision_id, top_log_dir=controller.provision_dir, job_id=job_id)
+        ctmanager.shutdown_job()
         if parsed_args.provision_id:
-            shutdown_job(ctmanager)
-            controller.shutdown_instance(parsed_args.provision_id)
-        if parsed_args.job_id:
-            shutdown_job(ctmanager)
+            controller.shutdown_instance()
 
 if __name__ == '__main__':
     import sys

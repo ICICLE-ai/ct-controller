@@ -1,3 +1,4 @@
+import os
 from __init__ import subcommand_map
 from re import search
 from subprocess import run
@@ -7,28 +8,67 @@ from controller import Controller
 #logger = logging.getLogger(__name__)
 
 class ChameleonController(Controller):
-    def __init__(self, site: str, provision_id: str=None, config_file: str=None, user_name: str=None, private_key: str=None, key_name: str=None):
+    def __init__(self, site: str, cmd: str, provision_id: str=None, config_file: str=None, user_name: str=None, private_key: str=None, key_name: str=None):
         self.key_name = key_name
         self.private_key = private_key
-        super(ChameleonController, self).__init__(site, config_file, user_name)
+        super(ChameleonController, self).__init__(site, cmd, config_file, user_name)
+
+        # If only registering or checking, do not setup provision variables
+        if cmd == 'register' or cmd == 'check':
+            return
+
         if provision_id is None:
-            self.set_provision_id()
+            provision_id = self.get_provision_id()
+        provision_dir = f'{self.user_dir}/provisions/{provision_id}'
+        provision_file = f'{provision_dir}/provision.yaml'
+        if os.path.exists(provision_file):
+            self.read_provision_info(provision_file)
         else:
-            self.provision_id = provision_id
-        self.provision_dir = f'{self.user_dir}/provisions/{self.provision_id}'
-        self.lease_name = None
-        self.ip_lease_name = None
-        self.ip_addresses = []
-        self.image = []
-        self.public_network_id = None
-        self.server_name = None
-        self.reservation_id = None
-        self.ip_reservation_id = None
-        self.network_id = None
-        self.lease_id = None
+            os.makedirs(f'{provision_dir}')
+
+        self.set('provision_dir', provision_dir)
+        self.set('provision_id', provision_id)
+
+        # Configure lease and instance names
+        self.set('lease_name',self.provision_id + '-lease')
+        self.set('ip_lease_name', self.provision_id + '-ip-lease')
+        self.set('server_name', self.provision_id + '-server')
+
+        # Set network id
+        cmd = ['openstack', 'network', 'list', '--name', 'sharednet1', '-c', 'ID', '-f', 'value']
+        self.set('network_id', self.capture_shell(cmd))
+        
+        # Set public network id
+        cmd = ['openstack', 'network', 'show', 'public', '-c', 'id', '-f', 'value']
+        self.set('public_network_id', self.capture_shell(cmd))
+
+        # Parameters set during provisioning
+        self.set('lease_id', None)
+        self.set('ip_lease_id', None)
+        self.set('ip_addresses', None)
+        self.set('reservation_id', None)
+        self.set('ip_reservation_id', None)
+        self.set('image', None)
+
+    def set(self, name: str, value):
+        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
+            super().__setattr__(name, value)
+            print(f'setting {name} to {value}')
+        #else:
+        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
+        if self.cmd == 'provision':
+            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+                f.write(f'{name}: {value}\n')
+
+    def read_provision_info(self, provision_file: str):
+        import yaml
+        print(f'Reading provision info from {provision_file}')
+        with open(provision_file, 'r') as f:
+            provision_info = yaml.safe_load(f)
+        for k, v in provision_info.items():
+            self.__setattr__(k, str(v))
 
     def load_user_cache(self):
-        import os
         # load ssh keys
         if os.path.exists(self.user_cache):
             from pickle import load
@@ -66,7 +106,7 @@ class ChameleonController(Controller):
                     var, _, val = out.partition('=')
                     self.env[var] = val
 
-        # Set password
+        # Attempt to get password from environment variable
         if self.env.get("CHAMELEON_PASSWORD"):
             self.env["OS_PASSWORD"] = self.env.get("CHAMELEON_PASSWORD")
         else:
@@ -85,7 +125,7 @@ class ChameleonController(Controller):
         elif isinstance(cmd, list):
             pass
         else:
-            raise Exception('Invalid shell command')
+            raise Exception(f'Invalid shell command: {cmd}')
         p = run(cmd, capture_output=True)
         out = p.stdout.decode('utf-8').strip()
         return out
@@ -99,7 +139,7 @@ class ChameleonController(Controller):
         shell.main(cmd)
     
     def available_hosts(self):
-        cmd = ['reservation', 'host', 'list',
+        cmd = ['openstack', 'reservation', 'host', 'list',
                '-c', 'node_type',
                '-c', 'gpu.gpu',
                '-c', 'architecture.platform_type',
@@ -110,46 +150,46 @@ class ChameleonController(Controller):
     def get_node_type(self, cpu, gpu):
         pass
     
-    def get_leasename(self):
-        if self.lease_name is None:
-            self.lease_name = self.provision_id + '-lease'
-        return self.lease_name
+    #def get_leasename(self):
+    #    if self.lease_name is None:
+    #        self.set('lease_name',self.provision_id + '-lease')
+    #    return self.lease_name
     
     def reserve_lease(self, nnodes, node_type):
         print('Reserving lease for physical nodes')
         resource_properties = f'["==", "$node_type", "{node_type}"]'
         reservation = f'min={nnodes},max={nnodes},resource_type=physical:host,resource_properties={resource_properties}'
-        cmd = subcommand_map['lease'] + ['create', '--reservation', reservation, self.get_leasename()]
+        cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
         print(' '.join(cmd))
-        shell.main(cmd)
+        lease_out = self.capture_shell(cmd)
+        lease_id = lease_out.split('\n')[1]
+        self.set('lease_id', lease_id)
+        #shell.main(cmd)
     
-    def get_public_network_id(self):
-        cmd = ['openstack', 'network', 'show', 'public', '-c', 'id', '-f', 'value']
-        self.public_network_id = self.capture_shell(cmd)
-        return self.public_network_id
+    #def get_public_network_id(self):
+    #    cmd = ['openstack', 'network', 'show', 'public', '-c', 'id', '-f', 'value']
+    #    self.set('public_network_id', self.capture_shell(cmd))
+    #    return self.public_network_id
     
-    def get_lease_status(self, lease):
-        cmd = ['openstack', 'reservation', 'lease', 'show', lease, '-c', 'status', '-f', 'value']
-        print(cmd)
-        return self.capture_shell(cmd)
+    #def get_lease_status(self, lease):
+    #    cmd = ['openstack', 'reservation', 'lease', 'show', lease, '-c', 'status', '-f', 'value']
+    #    print(cmd)
+    #    return self.capture_shell(cmd)
     
-    def check_leases_ready(self):
-        physical = self.get_lease_status(self.lease_name)
-        ip = self.get_lease_status(self.ip_lease_name)
-        if physical  == 'ACTIVE' and  ip == 'ACTIVE':
+    def check_lease_ready(self, lease_name, lease_id):
+        cmd = ['openstack', 'reservation', 'lease', 'show', lease_id, '-c', 'status', '-f', 'value']
+        status = self.capture_shell(cmd)
+        #status= self.get_lease_status(lease_id)
+        if status == 'ACTIVE':
             return True
-        elif physical == 'ERROR':
-            raise Exception('The hardware lease failed during provisioning.')
-        elif ip == 'ERROR':
-            raise Exception('The floating IP lease failed during provisioning.')
-        elif physical == 'TERMINATED':
-            raise Exception('The hardware lease has been terminated.')
-        elif ip == 'TERMINATED':
-            raise Exception('The floating IP lease has been terminated.')
-        elif physical == 'PENDING' or ip == 'PENDING':
+        elif status == 'ERROR':
+            raise Exception(f'The {lease_name} lease failed during provisioning.')
+        elif status == 'TERMINATED':
+            raise Exception(f'The lease {lease_name} has been terminated.')
+        elif status == 'PENDING':
             return False
         else:
-            raise Exception('Lease in invalid state')
+            raise Exception(f'Lease in invalid state: {status}')
 
     def check_server_ready(self, server_name):
         cmd = ['openstack', 'server', 'show', server_name, '-c', 'status', '-f', 'value']
@@ -163,74 +203,81 @@ class ChameleonController(Controller):
         elif status == 'ERROR':
             raise Exception(f'Server {server_name} instance could not be created')
         else:
-            raise Exception('Server in invalid state')
+            print(f'Server in invalid state {status}')
+            raise Exception()
     
-    def get_ip_leasename(self):
-        if self.ip_lease_name is None:
-            self.ip_lease_name = self.provision_id + '-ip-lease'
-        return self.ip_lease_name
+    #def get_ip_leasename(self):
+    #    if self.ip_lease_name is None:
+    #        self.set('ip_lease_name', self.provision_id + '-ip-lease')
+    #    return self.ip_lease_name
     
     def reserve_ip(self, num):
-        print('Reserving lease for floating ip addresses')
-        cmd = subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.get_public_network_id()},amount={num}', self.get_ip_leasename()]
-        print(cmd)
-        shell.main(cmd)
+        cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount={num}', self.ip_lease_name, '-f', 'value', '-c', 'id']
+        print(f'Reserving lease for floating ip addresses\n{cmd}')
+        #shell.main(cmd)
+        lease_out = self.capture_shell(cmd)
+        lease_id = lease_out.split('\n')[1]
+        self.set('ip_lease_id', lease_id)
     
-    def get_network_id(self):
-        if self.network_id is None:
-            cmd = ['openstack', 'network', 'list', '--name', 'sharednet1', '-c', 'ID', '-f', 'value']
-            self.network_id = self.capture_shell(cmd)
-        return self.network_id
+    #def get_network_id(self):
+    #    if self.network_id is None:
+    #        cmd = ['openstack', 'network', 'list', '--name', 'sharednet1', '-c', 'ID', '-f', 'value']
+    #        self.set('network_id', self.capture_shell(cmd))
+    #    return self.network_id
     
-    def get_lease_id(self):
-        if self.lease_id is None:
-            cmd = ['openstack', 'reservation', 'lease', 'show', self.get_leasename(), '-c', 'id', '-f', 'value']
-            self.lease_id = self.capture_shell(cmd)
-        return self.lease_id
+    #def get_lease_id(self):
+    #    if self.lease_id is None:
+    #        cmd = ['openstack', 'reservation', 'lease', 'show', self.lease_name, '-c', 'id', '-f', 'value']
+    #        self.set('lease_id', self.capture_shell(cmd))
+    #    return self.lease_id
     
     def get_reservation_id(self):
         if self.reservation_id is None:
-            cmd = ['openstack', 'reservation', 'lease', 'show', self.get_leasename(), '-c', 'reservations', '-f', 'value']
+            cmd = ['openstack', 'reservation', 'lease', 'show', self.lease_name, '-c', 'reservations', '-f', 'value']
             out = self.capture_shell(cmd)
             # parse resid
             # sed command: sed -En 's/.*"id": "([^"]*).*/\1/p') $resid
             m=search(r'"id": "([^"]+)"', out )
-            self.reservation_id = m.groups()[0]
+            self.set('reservation_id', m.groups()[0])
         return self.reservation_id
     
-    def get_image_name(self):
+    def select_image(self):
         # get available images
-        if self.image == []:
-            cmd = ['openstack', 'image', 'list', '-c', 'Name', '-f', 'value', '--tag', 'ct_edge']
-            if 'cpu' in self.node_info:
-                cmd += ['--tag', self.node_info['cpu']]
-            if 'gpu' in self.node_info and self.node_info['gpu'] == True:
-                cmd += ['--tag', self.node_info['gpu']]
-            print(cmd)
-            self.image = self.capture_shell(cmd)
-        return self.image
+        cmd = ['openstack', 'image', 'list', '-c', 'Name', '-f', 'value', '--tag', 'ct_edge']
+        if 'cpu' in self.node_info:
+            cmd += ['--tag', self.node_info['cpu']]
+        if 'gpu' in self.node_info and self.node_info['gpu'] == True:
+            cmd += ['--tag', self.node_info['gpu']]
+        print(cmd)
+        self.set('image', self.capture_shell(cmd))
     
-    def get_server_name(self):
-        if self.server_name is None:
-            self.server_name = self.provision_id + '-server'
-        return self.server_name
+    #def get_server_name(self):
+    #    if self.server_name is None:
+    #        self.set('server_name', self.provision_id + '-server')
+    #    return self.server_name
     
     def create_instance(self):
         import time
         # wait until reservations are ready
-        print('Waiting for reservation leases to start')
-        while self.check_leases_ready() == False:
+        print('Waiting for reservation leases to start', end='')
+        while self.check_lease_ready(self.ip_lease_name, self.ip_lease_id) == False or self.check_lease_ready(self.lease_name, self.lease_id) == False:
             print('.', end='')
             time.sleep(3)
+        print('\n')
         print('Creating instance on the lease')
-        cmd = subcommand_map['server'] + ['create', '--image', self.get_image_name(),
-                                          '--network', self.get_network_id(),
-                                          '--flavor', 'baremetal',
-                                          '--key-name', self.ssh_key['name'],
-                                          '--hint', f'reservation={self.get_reservation_id()}',
-                                          self.get_server_name()]
+        cmd = ['openstack'] + subcommand_map['server']  \
+                            + ['create', '--image', self.image,
+                               '--network', self.network_id,
+                               '--flavor', 'baremetal',
+                               '--key-name', self.ssh_key['name'],
+                               '--hint', f'reservation={self.get_reservation_id()}',
+                               '-c', 'id', '-f', 'value',
+                               self.server_name]
         print(cmd)
-        shell.main(cmd)
+        #shell.main(cmd)
+        self.set('server_id', self.capture_shell(cmd))
+        # Set ip address for instance
+        self.get_ip_addresses()
     
     def delete_server(self):
         cmd = subcommand_map['server'] + ['delete', self.server_name]
@@ -243,46 +290,46 @@ class ChameleonController(Controller):
         shell.main(cmd)
     
     def get_ip_reservation_id(self):
-        cmd = ['openstack'] + subcommand_map['lease'] + ['show', self.get_ip_leasename(), '-c', 'reservations', '-f', 'value']
+        cmd = ['openstack'] + subcommand_map['lease'] + ['show', self.ip_lease_name, '-c', 'reservations', '-f', 'value']
         out = self.capture_shell(cmd)
         #print(f'cmd: {cmd}')
         #print(f'resout: {out}')
         m=search(r'"id": "([^"]+)"', out )
         resid = m.groups()[0]
-        return resid
+        self.set('ip_reservation_id', resid)
     
     def get_ip_addresses(self):
-        ipres_id = self.get_ip_reservation_id()
-        cmd = ['openstack'] + subcommand_map['ip'] + ['list', '--tags', f'blazar,reservation:{ipres_id}', '-c', 'Floating IP Address', '-f', 'value']
-        return self.capture_shell(cmd)
+        cmd = ['openstack'] + subcommand_map['ip'] + ['list', '--tags', f'blazar,reservation:{self.get_ip_reservation_id}', '-c', 'Floating IP Address', '-f', 'value']
+        self.set('ip_addresses', self.capture_shell(cmd))
     
     def associate_ip(self):
         import time
-        while self.check_server_ready(self.server_name) == False:
+        print('Waiting for server to be ready', end='')
+        while self.check_server_ready(self.server_id) == False:
+            print('.', end='')
             time.sleep(3)
+        print('\n')
         print("Associating floating IP address with instance")
-        ip_addresses = self.get_ip_addresses()
-        cmd = subcommand_map['server'] + ['add', 'floating', 'ip', self.get_server_name(), ip_addresses]
+        cmd = subcommand_map['server'] + ['add', 'floating', 'ip', self.server_name, self.ip_addresses]
         shell.main(cmd)
-        check_cmd = ['openstack', 'server', 'show', self.get_server_name(), '-c', 'addresses', '-f', 'value']
+        check_cmd = ['openstack', 'server', 'show', self.server_name, '-c', 'addresses', '-f', 'value']
         print(f'{check_cmd=}')
         print(self.capture_shell(check_cmd))
         while self.capture_shell(check_cmd) == '':
             time.sleep(3)
     
     def allocate_ip(self):
-        cmd = subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.get_public_network_id()},amount=1', self.get_ip_leasename()]
+        cmd = subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount=1', self.ip_lease_name]
         print(cmd)
         shell.main(cmd)
     
     def connect(self):
         from remote import RemoteRunner
-        self.ip_addresses = self.get_ip_addresses()
-        self.runner = RemoteRunner(self.ip_addresses, 'cc', self.ssh_key['path'])
+        self.runner = self.get_remote_runner()
 
     def check_connection(self):
         remote_hostname = self.runner.run('hostname')
-        if remote_hostname == self.get_server_name():
+        if remote_hostname == self.server_name:
             print('Connected')
             return True
         else:
@@ -292,22 +339,26 @@ class ChameleonController(Controller):
     def set_node_info(self, cpu, gpu, node_type):
         if node_type is None:
             node_type = self.get_node_type(cpu, gpu)
-        self.node_info = {'cpu': cpu, 'gpu': gpu, node_type: node_type}
+        self.set('node_info',{'cpu': cpu, 'gpu': gpu, 'node_type': node_type})
     
-    def set_provision_id(self):
-        import os
+    def get_provision_id(self):
         top_provision_dir = f'{self.user_dir}/provisions'
         if os.path.exists(top_provision_dir):
-            subdirs = [f.path for f in os.scandir(top_provision_dir) if f.is_dir()]
+            subdirs = [f.name for f in os.scandir(top_provision_dir) if f.is_dir()]
             numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
-            self.provision_id = str(max(numbered_subdirs) + 1)
+            provision_id = str(max(numbered_subdirs) + 1)
         else:
             os.makedirs(top_provision_dir, exist_ok=True)
-            self.provision_id = '0'
+            provision_id = '0'
+        return provision_id
+
+    def get_remote_runner(self):
+        from remote import RemoteRunner
+        return RemoteRunner(self.ip_addresses, 'cc', self.ssh_key['path'], self.provision_id)
 
     def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
         self.set_node_info(cpu, gpu, node_type)
-        self.get_image_name()
+        self.select_image()
         self.reserve_lease(nnodes, node_type)
         self.reserve_ip(nnodes)
         self.create_instance()

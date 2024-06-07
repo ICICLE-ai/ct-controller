@@ -55,7 +55,8 @@ class CLIParser:
         run_subparser = subparsers.add_parser('run', help='run on reserved hardware')
         run_subparser.add_argument('--job-id', '-j', type=str, help='unique job identifier')
         run_subparser.add_argument('--provision-id', '-p', type=str, help='provision identifier to run job')
-        run_subparser.add_argument('--ct-version', '-V', type=str, help='version of camera traps to run')
+        run_subparser.add_argument('--ct-version', '-V', type=str, help='version of camera traps to run', default='0.3.3')
+        run_subparser.add_argument('--branch', '-b', type=str, help='branch of camera traps', default='main')
 
         kill_subparser = subparsers.add_parser('kill')
         kill_subparser.add_argument('--job-id', '-j', type=str, help='job identifier to kill')

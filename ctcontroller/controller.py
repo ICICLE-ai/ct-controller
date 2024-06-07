@@ -5,8 +5,9 @@ from __init__ import CT_ROOT
 #logger = logging.getLogger(__name__)
 
 class Controller:
-    def __init__(self, site: str, config_file: str=None, user_name: str = None):
+    def __init__(self, site: str, cmd: str, config_file: str=None, user_name: str = None):
         self.site = site
+        self.cmd = cmd
         if user_name:
             self.user_name = user_name
         else:
