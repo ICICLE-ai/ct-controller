@@ -22,9 +22,9 @@ class CameraTrapsManager():
     def setup_app(self):
         cmd = dedent(f'''
         rm -rf camera-traps
-        git clone https://github.com/tapis-project/camera-traps {branch}
+        git clone https://github.com/tapis-project/camera-traps {self.branch}
         cd camera-traps
-        cd releases/{version}
+        cd releases/{self.version}
         ''')
         out = self.runner.run(cmd)
         print(out)
