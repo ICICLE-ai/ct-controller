@@ -49,24 +49,7 @@ class ChameleonController(Controller):
         self.set('reservation_id', None)
         self.set('ip_reservation_id', None)
         self.set('image', None)
-
-    def set(self, name: str, value):
-        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
-            super().__setattr__(name, value)
-            print(f'setting {name} to {value}')
-        #else:
-        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
-        if self.cmd == 'provision':
-            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
-                f.write(f'{name}: {value}\n')
-
-    def read_provision_info(self, provision_file: str):
-        import yaml
-        print(f'Reading provision info from {provision_file}')
-        with open(provision_file, 'r') as f:
-            provision_info = yaml.safe_load(f)
-        for k, v in provision_info.items():
-            self.__setattr__(k, str(v))
+        self.set('remote_id', 'cc')
 
     def load_user_cache(self):
         # load ssh keys
@@ -106,12 +89,13 @@ class ChameleonController(Controller):
                     var, _, val = out.partition('=')
                     self.env[var] = val
 
-        # Attempt to get password from environment variable
-        if self.env.get("CHAMELEON_PASSWORD"):
-            self.env["OS_PASSWORD"] = self.env.get("CHAMELEON_PASSWORD")
-        else:
-            password = input('Please enter your chameleon password or pass to the environment variable CHAMELEON_PASSWORD: ')
-            self.env["OS_PASSWORD"] = password
+        # Assuming application credentials, do not check for password
+        ## Attempt to get password from environment variable
+        #if self.env.get("CHAMELEON_PASSWORD"):
+        #    self.env["OS_PASSWORD"] = self.env.get("CHAMELEON_PASSWORD")
+        #else:
+        #    password = input('Please enter your chameleon password or pass to the environment variable CHAMELEON_PASSWORD: ')
+        #    self.env["OS_PASSWORD"] = password
 
         # Do not leave empty string as region name
         if self.env.get("OS_REGION_NAME") is not None and self.env.get("OS_REGION_NAME") == "":
@@ -119,17 +103,16 @@ class ChameleonController(Controller):
         # Set ssh key info from command line
         self.ssh_key = {'name': self.key_name, 'path': self.private_key}
 
-    def capture_shell(self, cmd):
-        if isinstance(cmd, str):
-            cmd = cmd.split(' ')
-        elif isinstance(cmd, list):
-            pass
-        else:
-            raise Exception(f'Invalid shell command: {cmd}')
-        p = run(cmd, capture_output=True)
-        out = p.stdout.decode('utf-8').strip()
-        return out
-    
+    def set(self, name: str, value):
+        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
+            super().__setattr__(name, value)
+            print(f'setting {name} to {value}')
+        #else:
+        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
+        if self.cmd == 'provision':
+            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+                f.write(f'{name}: {value}\n')
+
     def run_check(self, check_type=''):
         cmd = subcommand_map.get(check_type)
         if cmd is None:
@@ -323,39 +306,11 @@ class ChameleonController(Controller):
         print(cmd)
         shell.main(cmd)
     
-    def connect(self):
-        from remote import RemoteRunner
-        self.runner = self.get_remote_runner()
-
-    def check_connection(self):
-        remote_hostname = self.runner.run('hostname')
-        if remote_hostname == self.server_name:
-            print('Connected')
-            return True
-        else:
-            print('Connection Failed')
-            return False
-
     def set_node_info(self, cpu, gpu, node_type):
         if node_type is None:
             node_type = self.get_node_type(cpu, gpu)
         self.set('node_info',{'cpu': cpu, 'gpu': gpu, 'node_type': node_type})
     
-    def get_provision_id(self):
-        top_provision_dir = f'{self.user_dir}/provisions'
-        if os.path.exists(top_provision_dir):
-            subdirs = [f.name for f in os.scandir(top_provision_dir) if f.is_dir()]
-            numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
-            provision_id = str(max(numbered_subdirs) + 1)
-        else:
-            os.makedirs(top_provision_dir, exist_ok=True)
-            provision_id = '0'
-        return provision_id
-
-    def get_remote_runner(self):
-        from remote import RemoteRunner
-        return RemoteRunner(self.ip_addresses, 'cc', self.ssh_key['path'], self.provision_id)
-
     def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
         self.set_node_info(cpu, gpu, node_type)
         self.select_image()

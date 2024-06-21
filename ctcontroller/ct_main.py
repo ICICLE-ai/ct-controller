@@ -11,9 +11,9 @@ def main(args: list):
     print(parsed_args)
     if parsed_args.site == 'Chameleon':
         from chameleon_controller import ChameleonController as SiteController
-        from camera_traps import CameraTrapsManager as AppManager
     elif parsed_args.site == 'TACC':
-        raise Exception('TACC site not yet configured')
+        from tacc_controller import TACCController as SiteController
+    from camera_traps import CameraTrapsManager as AppManager
 
     # If registering, initialize controller and return
     if parsed_args.subcommand == 'register':

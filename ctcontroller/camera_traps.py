@@ -64,7 +64,10 @@ class CameraTrapsManager():
         self.runner.tracked_run(cmd, outlog, errlog)
 
     def docker_compose_down(self):
-        cmd="docker compose down"
+        cmd = dedent(f"""
+        cd camera-traps/releases/{self.version}
+        docker compose up
+        """)
         out = self.runner.run(cmd)
         print(out)
 

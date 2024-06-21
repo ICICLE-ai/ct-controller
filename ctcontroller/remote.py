@@ -1,7 +1,11 @@
 import paramiko
 
+AuthenticationException = paramiko.ssh_exception.AuthenticationException
+
 class RemoteRunner():
     def __init__(self, ip_address: str, username: str, pkey_path: str, provision_id: str):
+        self.client = None
+        self.sftp = None
         pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
@@ -11,6 +15,7 @@ class RemoteRunner():
         client.connect(ip_address, username=username, pkey=pkey)
         self.ip_address = ip_address
         self.client = client
+        self.sftp = self.client.open_sftp()
         self.provision_id = provision_id
 
     def run(self, cmd: str) -> str:
@@ -38,3 +43,23 @@ class RemoteRunner():
 
         outf.close()
         errf.close()
+
+    def create_file(self, fpath: str):
+        f = self.sftp.open(fpath, 'w')
+        f.close()
+
+    def delete_file(self, fpath: str):
+        self.sftp.remove(fpath)
+        
+
+    def file_exists(self, fpath: str) -> bool:
+        try:
+            self.sftp.stat(fpath)
+            exists = True
+        except IOError:
+            exists = False
+        return exists
+
+    def __del__(self):
+        if self.sftp: self.sftp.close()
+        if self.client: self.client.close()

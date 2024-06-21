@@ -1,5 +1,6 @@
 #import logging
 import os
+from subprocess import run
 from __init__ import CT_ROOT
 
 #logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class Controller:
         self.user_cache = f'{self.user_dir}/cache.pcl'
         if not self.load_user_cache():
             self.setup_user()
+        self.remote_id = self.user_name
         self.save_user_cache()
 
     def use_existing_config(self):
@@ -71,8 +73,68 @@ class Controller:
         with open(self.user_cache, 'wb') as p:
             dump(dict(self.env), p, HIGHEST_PROTOCOL)
 
-    def setup_user():
+    def get_provision_id(self):
+        top_provision_dir = f'{self.user_dir}/provisions'
+        if os.path.exists(top_provision_dir):
+            subdirs = [f.name for f in os.scandir(top_provision_dir) if f.is_dir()]
+            numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
+            provision_id = str(max(numbered_subdirs) + 1)
+        else:
+            os.makedirs(top_provision_dir, exist_ok=True)
+            provision_id = '0'
+        return provision_id
+
+    def set(self, name: str, value):
+        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
+            super().__setattr__(name, value)
+            print(f'setting {name} to {value}')
+        #else:
+        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
+        if self.cmd == 'provision':
+            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+                f.write(f'{name}: {value}\n')
+
+    def read_provision_info(self, provision_file: str):
+        import yaml
+        print(f'Reading provision info from {provision_file}')
+        with open(provision_file, 'r') as f:
+            provision_info = yaml.safe_load(f)
+        for k, v in provision_info.items():
+            self.__setattr__(k, str(v))
+
+    def capture_shell(self, cmd):
+        if isinstance(cmd, str):
+            cmd = cmd.split(' ')
+        elif isinstance(cmd, list):
+            pass
+        else:
+            raise Exception(f'Invalid shell command: {cmd}')
+        p = run(cmd, capture_output=True)
+        out = p.stdout.decode('utf-8').strip()
+        return out
+    
+    def setup_user(self):
         pass
+
+    def get_remote_runner(self, ip_address=None):
+        from remote import RemoteRunner
+        if ip_address is None:
+            ip_address = self.ip_addresses
+        print(f'remote runner: {ip_address}, {self.remote_id}, {self.ssh_key["path"]}, {self.provision_id}')
+        return RemoteRunner(ip_address, self.remote_id, self.ssh_key['path'], self.provision_id)
+
+    def connect(self):
+        from remote import RemoteRunner
+        self.runner = self.get_remote_runner()
+
+    def check_connection(self):
+        remote_hostname = self.runner.run('hostname')
+        if remote_hostname == self.server_name:
+            print('Connected')
+            return True
+        else:
+            print('Connection Failed')
+            return False
 
     #def login(self):
     #    if not self.load_user_cache():
