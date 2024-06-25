@@ -1,33 +1,39 @@
 import os
-from __init__ import subcommand_map
 from re import search
 from subprocess import run
 import openstackclient.shell as shell
-from controller import Controller
+from provisioner import Provisioner
+from __init__ import print_and_exit
 #import logging
 #logger = logging.getLogger(__name__)
 
-class ChameleonController(Controller):
-    def __init__(self, site: str, cmd: str, provision_id: str=None, config_file: str=None, user_name: str=None, private_key: str=None, key_name: str=None):
-        self.key_name = key_name
-        self.private_key = private_key
-        super(ChameleonController, self).__init__(site, cmd, config_file, user_name)
+subcommand_map = {
+    'lease': ['reservation', 'lease'],
+    'server': ['server'],
+    'ip': ['floating', 'ip'],
+    'image': ['image']
+}
+
+class ChameleonProvisioner(Provisioner):
+    #def __init__(self, site: str, cmd: str, provision_id: str=None, config_file: str=None, user_name: str=None, private_key: str=None, key_name: str=None):
+    def __init__(self, cfg):
+        super(ChameleonProvisioner, self).__init__(cfg)
 
         # If only registering or checking, do not setup provision variables
-        if cmd == 'register' or cmd == 'check':
-            return
+        #if cmd == 'register' or cmd == 'check':
+        #    return
 
-        if provision_id is None:
-            provision_id = self.get_provision_id()
-        provision_dir = f'{self.user_dir}/provisions/{provision_id}'
-        provision_file = f'{provision_dir}/provision.yaml'
-        if os.path.exists(provision_file):
-            self.read_provision_info(provision_file)
-        else:
-            os.makedirs(f'{provision_dir}')
+        subsite = cfg['site'].split('@')[1].lower()
+        # set Chameleon-specific environment variables
+        os.environ['OS_AUTH_TYPE'] = 'v3applicationcredential'
+        os.environ['OS_AUTH_URL'] = f'https://chi.{subsite}.chameleoncloud.org:5000/v3'
+        os.environ['OS_IDENTITY_API_VERSION'] = '3'
+        os.environ['OS_REGION_NAME'] = cfg['site']
+        os.environ['OS_INTERFACE'] = 'public'
 
-        self.set('provision_dir', provision_dir)
-        self.set('provision_id', provision_id)
+        # ensure that app credentials are already defined in the environment
+        if os.environ.get('OS_APPLICATION_CREDENTIAL_ID') is None or os.environ.get('OS_APPLICATION_CREDENTIAL_SECRET') is None:
+            raise Exception('Chameleon Application credentials must be specified in the environment')
 
         # Configure lease and instance names
         self.set('lease_name',self.provision_id + '-lease')
@@ -50,68 +56,64 @@ class ChameleonController(Controller):
         self.set('ip_reservation_id', None)
         self.set('image', None)
         self.set('remote_id', 'cc')
+        self.set('cpu_arch', self.get_cpu_arch())
 
-    def load_user_cache(self):
-        # load ssh keys
-        if os.path.exists(self.user_cache):
-            from pickle import load
-            with open(self.user_cache, 'rb') as p:
-                self.env.update(load(p))
-                self.ssh_key = load(p)
-            return True
-        return False
+    #def load_user_cache(self):
+    #    # load ssh keys
+    #    if os.path.exists(self.user_cache):
+    #        from pickle import load
+    #        with open(self.user_cache, 'rb') as p:
+    #            self.env.update(load(p))
+    #            self.ssh_key = load(p)
+    #        return True
+    #    return False
 
-    def save_user_cache(self):
-        super(ChameleonController, self).save_user_cache()
-        # save ssh keys
-        from pickle import dump, HIGHEST_PROTOCOL
-        with open(self.user_cache, 'ab') as p:
-            dump(self.ssh_key, p, HIGHEST_PROTOCOL)
+    #def save_user_cache(self):
+    #    super(ChameleonProvisioner, self).save_user_cache()
+    #    # save ssh keys
+    #    from pickle import dump, HIGHEST_PROTOCOL
+    #    with open(self.user_cache, 'ab') as p:
+    #        dump(self.ssh_key, p, HIGHEST_PROTOCOL)
 
-    def get_user_name(self, user_config_file):
-        if user_config_file:
-            with open(user_config_file, 'r') as f:
-                for line in f.readlines():
-                    if 'OS_USERNAME' in line:
-                        try:
-                            self.user_name = line.split('=')[1].replace("\"", "").strip()
-                            return
-                        except IndexError:
-                            continue
+    #def get_user_name(self, user_config_file):
+    #    if user_config_file:
+    #        with open(user_config_file, 'r') as f:
+    #            for line in f.readlines():
+    #                if 'OS_USERNAME' in line:
+    #                    try:
+    #                        return line.split('=')[1].replace("\"", "").strip()
+    #                    except IndexError:
+    #                        continue
+    #    raise Exception('No username found')
 
 
-    def setup_user(self):
-        # Read config file
-        with open(self.config_file, 'r') as f:
-            for line in f.readlines():
-                if 'export' in line:
-                    out = line.replace('export ', '').replace('"', '').strip('\n')
-                    var, _, val = out.partition('=')
-                    self.env[var] = val
+    #def set(self, name: str, value):
+    #    if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
+    #        super().__setattr__(name, value)
+    #        print(f'setting {name} to {value}')
+    #    #else:
+    #    #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
+    #    if self.cmd == 'provision':
+    #        with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+    #            f.write(f'{name}: {value}\n')
 
-        # Assuming application credentials, do not check for password
-        ## Attempt to get password from environment variable
-        #if self.env.get("CHAMELEON_PASSWORD"):
-        #    self.env["OS_PASSWORD"] = self.env.get("CHAMELEON_PASSWORD")
-        #else:
-        #    password = input('Please enter your chameleon password or pass to the environment variable CHAMELEON_PASSWORD: ')
-        #    self.env["OS_PASSWORD"] = password
-
-        # Do not leave empty string as region name
-        if self.env.get("OS_REGION_NAME") is not None and self.env.get("OS_REGION_NAME") == "":
-            del self.env["OS_REGION_NAME"]
-        # Set ssh key info from command line
-        self.ssh_key = {'name': self.key_name, 'path': self.private_key}
-
-    def set(self, name: str, value):
-        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
-            super().__setattr__(name, value)
-            print(f'setting {name} to {value}')
-        #else:
-        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
-        if self.cmd == 'provision':
-            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
-                f.write(f'{name}: {value}\n')
+    def get_cpu_arch(self):
+        cmd = ['openstack', 'reservation', 'host', 'list', '-f',
+               'csv', '-c', 'node_type', '-c', 'architecture.platform_type', '-c', 'cpu_arch']
+        all_nodes = self.capture_shell(cmd)
+        for node in all_nodes.split('\n'):
+            if f'"{self.node_type}"' in node:
+                break
+        #return node.split(',')[1].strip("\"")
+        node = node.replace(self.node_type, '')
+        node_info = node.split(',')
+        for i in node_info:
+            arch  = i.strip("\"")
+            if arch != '':
+                return arch
+        else: #platform == '' and arch == ''
+            print_and_exit(f'Cannot determine CPU architecture of specified node type {self.node_type}')
+        
 
     def run_check(self, check_type=''):
         cmd = subcommand_map.get(check_type)
@@ -138,10 +140,10 @@ class ChameleonController(Controller):
     #        self.set('lease_name',self.provision_id + '-lease')
     #    return self.lease_name
     
-    def reserve_lease(self, nnodes, node_type):
+    def reserve_lease(self):
         print('Reserving lease for physical nodes')
-        resource_properties = f'["==", "$node_type", "{node_type}"]'
-        reservation = f'min={nnodes},max={nnodes},resource_type=physical:host,resource_properties={resource_properties}'
+        resource_properties = f'["==", "$node_type", "{self.node_type}"]'
+        reservation = f'min={self.num_nodes},max={self.num_nodes},resource_type=physical:host,resource_properties={resource_properties}'
         cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
         print(' '.join(cmd))
         lease_out = self.capture_shell(cmd)
@@ -169,6 +171,8 @@ class ChameleonController(Controller):
             raise Exception(f'The {lease_name} lease failed during provisioning.')
         elif status == 'TERMINATED':
             raise Exception(f'The lease {lease_name} has been terminated.')
+        elif status == 'STARTING':
+            return False
         elif status == 'PENDING':
             return False
         else:
@@ -180,6 +184,8 @@ class ChameleonController(Controller):
         if status == 'ACTIVE':
             return True
         elif status == 'BUILD':
+            return False
+        elif status == 'STARTING':
             return False
         elif status == 'TERMINATED':
             raise Exception(f'Server {server_name} instance was terminated')
@@ -194,8 +200,8 @@ class ChameleonController(Controller):
     #        self.set('ip_lease_name', self.provision_id + '-ip-lease')
     #    return self.ip_lease_name
     
-    def reserve_ip(self, num):
-        cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount={num}', self.ip_lease_name, '-f', 'value', '-c', 'id']
+    def reserve_ip(self):
+        cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount={self.num_nodes}', self.ip_lease_name, '-f', 'value', '-c', 'id']
         print(f'Reserving lease for floating ip addresses\n{cmd}')
         #shell.main(cmd)
         lease_out = self.capture_shell(cmd)
@@ -282,8 +288,11 @@ class ChameleonController(Controller):
         self.set('ip_reservation_id', resid)
     
     def get_ip_addresses(self):
-        cmd = ['openstack'] + subcommand_map['ip'] + ['list', '--tags', f'blazar,reservation:{self.get_ip_reservation_id}', '-c', 'Floating IP Address', '-f', 'value']
-        self.set('ip_addresses', self.capture_shell(cmd))
+        self.get_ip_reservation_id()
+        cmd = ['openstack'] + subcommand_map['ip'] + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', 'Floating IP Address', '-f', 'value']
+        print(cmd)
+        ip_addresses = self.capture_shell(cmd)
+        self.set('ip_addresses', ip_addresses)
     
     def associate_ip(self):
         import time
@@ -305,19 +314,19 @@ class ChameleonController(Controller):
         cmd = subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount=1', self.ip_lease_name]
         print(cmd)
         shell.main(cmd)
+
+    def set_node_info(self):
+        #if self.node_type is None:
+        #    node_type = self.get_node_type(cpu, gpu)
+        self.set('node_info',{'cpu': self.cpu_arch, 'gpu': self.gpu, 'node_type': self.node_type})
     
-    def set_node_info(self, cpu, gpu, node_type):
-        if node_type is None:
-            node_type = self.get_node_type(cpu, gpu)
-        self.set('node_info',{'cpu': cpu, 'gpu': gpu, 'node_type': node_type})
-    
-    def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
-        self.set_node_info(cpu, gpu, node_type)
+    #def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):
+    def provision_instance(self):
+        self.set_node_info()
         self.select_image()
-        self.reserve_lease(nnodes, node_type)
-        self.reserve_ip(nnodes)
+        self.reserve_lease()
+        self.reserve_ip()
         self.create_instance()
-        #self.allocate_ip() #duplicate?
         self.associate_ip()
         self.connect()
         self.check_connection() # ssh into instance
@@ -325,4 +334,3 @@ class ChameleonController(Controller):
     def shutdown_instance(self):
         self.delete_server()
         self.delete_leases()
-        pass

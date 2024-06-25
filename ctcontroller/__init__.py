@@ -1,10 +1,8 @@
 #!/usr/env/python3
-
-subcommand_map = {
-    'lease': ['reservation', 'lease'],
-    'server': ['server'],
-    'ip': ['floating', 'ip'],
-    'image': ['image']
-}
+import sys
 
 CT_ROOT = '.ctcontroller'
+
+def print_and_exit(msg: str):
+    print(msg)
+    sys.exit(1)

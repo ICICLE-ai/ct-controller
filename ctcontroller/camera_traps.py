@@ -3,34 +3,26 @@ from remote import RemoteRunner
 from textwrap import dedent
 
 class CameraTrapsManager():
-    def __init__(self, runner: RemoteRunner, version: str, provision_id: str, top_log_dir: str, job_id: str=None, branch: str = None):
-        self.branch = branch
-        self.version = version
+    #def __init__(self, runner: RemoteRunner, version: str, provision_id: str, top_log_dir: str, job_id: str=None, branch: str = None):
+    def __init__(self, runner: RemoteRunner, top_log_dir: str, cfg):
         self.runner = runner
-        if branch:
-            branch = f'-b {branch}'
-        else:
-            branch = ''
-        self.provision_id = provision_id
-
-        if job_id is None:
+        self.version = cfg['ct_version']
+        if 'job_id' not in cfg or cfg['job_id'] is None:
             job_id = self.get_job_id(top_log_dir)
         self.job_id = job_id
         self.log_dir = f'{top_log_dir}/{self.job_id}'
         self.setup_log_dir()
+        self.run_dir = 'inputs'
 
     def setup_app(self):
-        cmd = dedent(f'''
-        rm -rf camera-traps
-        git clone https://github.com/tapis-project/camera-traps {self.branch}
-        cd camera-traps
-        cd releases/{self.version}
-        ''')
-        out = self.runner.run(cmd)
-        print(out)
+        # Prune containers on system
+        cmd = 'docker container prune -f'
+        self.runner.run(cmd)
+        # Copy over run scripts
+        self.runner.copy_dir(f'./{self.run_dir}', self.runner.home_dir)
 
     def remove_app(self):
-        cmd = dedent(f'rm -rf camera-traps')
+        cmd = dedent(f'rm -rf {self.run_dir}')
         out = self.runner.run(cmd)
         print(out)
 
@@ -49,11 +41,9 @@ class CameraTrapsManager():
         return job_id
 
     def docker_compose_up(self):
-        # Append jobid to provision's yaml
-
         # Run docker compose up to start camera traps code
         cmd = dedent(f"""
-        cd camera-traps/releases/{self.version}
+        cd {self.run_dir}
         docker compose up
         """)
         #out = self.runner.run(cmd)
@@ -65,8 +55,8 @@ class CameraTrapsManager():
 
     def docker_compose_down(self):
         cmd = dedent(f"""
-        cd camera-traps/releases/{self.version}
-        docker compose up
+        cd {self.run_dir}
+        docker compose down
         """)
         out = self.runner.run(cmd)
         print(out)

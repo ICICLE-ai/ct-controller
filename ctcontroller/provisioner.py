@@ -5,68 +5,84 @@ from __init__ import CT_ROOT
 
 #logger = logging.getLogger(__name__)
 
-class Controller:
-    def __init__(self, site: str, cmd: str, config_file: str=None, user_name: str = None):
-        self.site = site
-        self.cmd = cmd
-        if user_name:
-            self.user_name = user_name
+class Provisioner:
+    def __init__(self, cfg):
+        if 'root' in cfg:
+            self.top_level_dir = self.get_top_level_dir(cfg['root'])
         else:
-            self.get_user_name(config_file)
-        if not self.use_existing_config():
-            self.top_level_dir = self.get_top_level_dir()
-            self.site_dir = self.top_level_dir + '/' + self.site
-            self.user_dir = f'{self.site_dir}/{self.user_name}'
-            self.config_file = f'{self.user_dir}/config.rc'
-            self.set_config(config_file)
-        self.env = os.environ
-        self.user_cache = f'{self.user_dir}/cache.pcl'
-        if not self.load_user_cache():
-            self.setup_user()
-        self.remote_id = self.user_name
-        self.save_user_cache()
-
-    def use_existing_config(self):
-        for dir in os.environ.get('CT_CONTROLLER_ROOT'), os.curdir, os.path.expanduser('~'):
-            user_dir = f'{dir}/{CT_ROOT}/{self.site}/{self.user_name}'
-            config_path = f'{user_dir}/config.rc'
-            if os.path.exists(config_path):
-                self.config_file = config_path
-                self.top_level_dir = f'{dir}/{CT_ROOT}'
-                self.site_dir = f'{self.top_level_dir}/{self.site}'
-                self.user_dir = f'{self.site_dir}/{self.user_name}'
-                return True
-
-    def get_top_level_dir(self):
-        for d in os.path.expanduser('~'), os.curdir, os.environ.get('CT_CONTROLLER_ROOT'):
-            dir = f'{d}/{CT_ROOT}'
-            if os.access(dir, os.W_OK):
-                return dir
-
-    def set_config(self, config_file: str):
-        custom_conf = os.environ.get("CT_CONTROLLER_CONF")
-        if custom_conf:
-            if os.path.exists(custom_conf):
-                self.config_file = custom_conf
+            self.top_level_dir = f'./{CT_ROOT}'
+        self.site = cfg['site']
+        self.site_dir = self.top_level_dir + '/' + self.site
+        self.user_name = cfg['user_name']
+        self.user_dir = f'{self.site_dir}/{self.user_name}'
+        if 'provision_id' not in cfg or cfg['provision_id'] is None:
+            provision_id = self.get_provision_id()
+        provision_dir = f'{self.user_dir}/provisions/{provision_id}'
+        provision_file = f'{provision_dir}/provision.yaml'
+        if os.path.exists(provision_file):
+            self.read_provision_info(provision_file)
         else:
-            import shutil
-            if not os.path.exists(self.user_dir):
-                os.makedirs(self.user_dir)
-            if config_file and os.path.exists(config_file):
-                print(f'Copying {config_file} to {self.config_file}')
-                shutil.copy(config_file, self.config_file)
-            else:
-                import sys
-                print(f'Invalid config file: {config_file}. Pass the path to a valid config file during registration.')
-                sys.exit(1)
+            os.makedirs(f'{provision_dir}')
 
-    def load_user_cache(self):
-        if os.path.exists(self.user_cache):
-            from pickle import load
-            with open(self.user_cache, 'rb') as p:
-                self.env.update(load(p))
-            return True
-        return False
+            self.set('provision_dir', provision_dir)
+            self.set('provision_id', provision_id)
+            self.set('private_key', cfg['ssh_key'])
+            self.set('key_name', cfg['key_name'])
+            self.set('ssh_key', {'name': self.key_name, 'path': self.private_key})
+            self.set('num_nodes', cfg['num_nodes'])
+            self.set('node_type', cfg['node_type'])
+            self.set('gpu', cfg['gpu'])
+        #self.env = os.environ
+        #self.user_cache = f'{self.user_dir}/cache.pcl'
+        #if not self.load_user_cache():
+        #    self.setup_user()
+        #self.save_user_cache()
+
+    #def use_existing_config(self):
+    #    for dir in os.environ.get('CT_CONTROLLER_ROOT'), os.curdir, os.path.expanduser('~'):
+    #        user_dir = f'{dir}/{CT_ROOT}/{self.site}/{self.user_name}'
+    #        config_path = f'{user_dir}/config.rc'
+    #        if os.path.exists(config_path):
+    #            self.config_file = config_path
+    #            self.top_level_dir = f'{dir}/{CT_ROOT}'
+    #            self.site_dir = f'{self.top_level_dir}/{self.site}'
+    #            self.user_dir = f'{self.site_dir}/{self.user_name}'
+    #            return True
+
+    #def get_top_level_dir(self, user_defined = None):
+    #    if user_defined is not None:
+    #        if os.access(user_defined, os.W_OK):
+    #            return user_defined
+    #    for d in os.path.expanduser('~'), os.curdir, os.environ.get('CT_CONTROLLER_ROOT'):
+    #        dir = f'{d}/{CT_ROOT}'
+    #        print(f'{dir=}')
+    #        if os.access(dir, os.W_OK):
+    #            return dir
+
+    #def set_config(self, config_file: str):
+    #    custom_conf = os.environ.get("CT_CONTROLLER_CONF")
+    #    if custom_conf:
+    #        if os.path.exists(custom_conf):
+    #            self.config_file = custom_conf
+    #    else:
+    #        import shutil
+    #        if not os.path.exists(self.user_dir):
+    #            os.makedirs(self.user_dir)
+    #        if config_file and os.path.exists(config_file):
+    #            print(f'Copying {config_file} to {self.config_file}')
+    #            shutil.copy(config_file, self.config_file)
+    #        else:
+    #            import sys
+    #            print(f'Invalid config file: {config_file}. Pass the path to a valid config file during registration.')
+    #            sys.exit(1)
+
+    #def load_user_cache(self):
+    #    if os.path.exists(self.user_cache):
+    #        from pickle import load
+    #        with open(self.user_cache, 'rb') as p:
+    #            self.env.update(load(p))
+    #        return True
+    #    return False
 
     def save_user_cache(self):
         from pickle import dump, HIGHEST_PROTOCOL
@@ -85,14 +101,14 @@ class Controller:
         return provision_id
 
     def set(self, name: str, value):
-        if name not in super().__dict__.keys() or  super().__getattribute__(name) is None:
+        if name not in self.__dict__.keys() or  self.__getattribute__(name) is None:
             super().__setattr__(name, value)
             print(f'setting {name} to {value}')
         #else:
         #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
-        if self.cmd == 'provision':
-            with open(self.provision_dir + '/provision.yaml', 'a+') as f:
-                f.write(f'{name}: {value}\n')
+        #if self.cmd == 'provision':
+        with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+            f.write(f'{name}: {value}\n')
 
     def read_provision_info(self, provision_file: str):
         import yaml
@@ -105,17 +121,18 @@ class Controller:
     def capture_shell(self, cmd):
         if isinstance(cmd, str):
             cmd = cmd.split(' ')
+            cmdstr = cmd
         elif isinstance(cmd, list):
-            pass
+            cmdstr = ' '.join(cmd)
         else:
             raise Exception(f'Invalid shell command: {cmd}')
         p = run(cmd, capture_output=True)
         out = p.stdout.decode('utf-8').strip()
+        err = p.stderr.decode('utf-8').strip()
+        if err != '':
+            print(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\n')
         return out
     
-    def setup_user(self):
-        pass
-
     def get_remote_runner(self, ip_address=None):
         from remote import RemoteRunner
         if ip_address is None:
@@ -135,6 +152,9 @@ class Controller:
         else:
             print('Connection Failed')
             return False
+
+    def provision_instance(self):
+        pass
 
     #def login(self):
     #    if not self.load_user_cache():
