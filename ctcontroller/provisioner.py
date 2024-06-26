@@ -1,9 +1,10 @@
 #import logging
 import os
 from subprocess import run
-from __init__ import CT_ROOT
 
 #logger = logging.getLogger(__name__)
+
+CT_ROOT = '.ctcontroller'
 
 class Provisioner:
     def __init__(self, cfg):
@@ -134,14 +135,14 @@ class Provisioner:
         return out
     
     def get_remote_runner(self, ip_address=None):
-        from remote import RemoteRunner
+        from .remote import RemoteRunner
         if ip_address is None:
             ip_address = self.ip_addresses
         print(f'remote runner: {ip_address}, {self.remote_id}, {self.ssh_key["path"]}, {self.provision_id}')
         return RemoteRunner(ip_address, self.remote_id, self.ssh_key['path'], self.provision_id)
 
     def connect(self):
-        from remote import RemoteRunner
+        from .remote import RemoteRunner
         self.runner = self.get_remote_runner()
 
     def check_connection(self):

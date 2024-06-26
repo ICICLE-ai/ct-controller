@@ -2,8 +2,8 @@ import os
 from re import search
 from subprocess import run
 import openstackclient.shell as shell
-from provisioner import Provisioner
-from __init__ import print_and_exit
+from .provisioner import Provisioner
+from .error import print_and_exit
 #import logging
 #logger = logging.getLogger(__name__)
 

@@ -1,8 +1,7 @@
-from provisioner import Provisioner
+from .provisioner import Provisioner
 import os
 
 class TACCProvisioner(Provisioner):
-    #def __init__(self, site: str, cmd: str, provision_id: str=None, config_file: str=None, user_name: str=None, private_key: str=None, key_name: str='default'):
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
         super(TACCProvisioner, self).__init__(cfg)
@@ -45,7 +44,7 @@ class TACCProvisioner(Provisioner):
 
 
     def reserve_node(self, node_type):
-        from remote import AuthenticationException
+        from .remote import AuthenticationException
         available_nodes = self.available_nodes[node_type]
         if available_nodes == []:
             raise Exception(f'No node of type {node_type} is available')

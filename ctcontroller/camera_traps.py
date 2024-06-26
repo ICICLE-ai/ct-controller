@@ -1,5 +1,5 @@
 import os
-from remote import RemoteRunner
+from .remote import RemoteRunner
 from textwrap import dedent
 
 class CameraTrapsManager():

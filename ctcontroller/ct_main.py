@@ -1,87 +1,60 @@
-#from cli import parse_args
-from __init__ import print_and_exit
+from .error import print_and_exit
 
-#def start_job(manager):
-#    manager.run_job()
-#
-#def shutdown_job(manager, job_id):
-#    manager.docker_compose_down()
+class Controller():
+    def __init__(self):
+        import os
+        self.vars = {
+            'num_nodes':         {'required': True,  'category': 'provisioner', 'type': str},
+            'site':              {'required': True,  'category': 'provisioner', 'type': str},
+            'node_type':         {'required': True,  'category': 'provisioner', 'type': str},
+            'gpu':               {'required': True,  'category': 'provisioner', 'type': bool},
+            'model':             {'required': True,  'category': 'application', 'type': str},
+            'input':             {'required': True,  'category': 'application', 'type': str},
+            'ssh_key':           {'required': True,  'category': 'provisioner', 'type': str},
+            'key_name':          {'required': False, 'category': 'provisioner', 'type': str},
+            'ct_version':        {'required': True,  'category': 'application', 'type': str},
+            'user_name':         {'required': True,  'category': 'provisioner', 'type': str},
+            'root':              {'required': False, 'category': 'provisioner', 'type': str},
+            'provision_id':      {'required': False, 'category': 'provisioner', 'type': int}, # for debugging only
+            'job_id':            {'required': False, 'category': 'application', 'type': int}  # for debugging only
+        }
 
-def parse_environment_variables():
-    import os
+        # List of possible environment variables to be used by the controller
+        provisioner_config = {}
+        application_config = {}
+        # iterate over variables and copy values into 
+        for k, v in self.vars.items():
+            var = f'CT_CONTROLLER_{k.upper()}'
+            found = False
+            if var in os.environ:
+                found = True
+                if v['category'] == 'provisioner':
+                    provisioner_config[k] = os.environ[var]
+                if v['category'] == 'application':
+                    application_config[k] = os.environ[var]
 
-    #if 'CT_CONTROLLER_CFG' in os.environ:
-    #    os.environ['CT_CONTROLLER_CFG']
+            # Check for any required variables that have not been defined
+            if v['required'] == True and found == False:
+                print_and_exit(f'Required variable CT_CONTROLLER_{k.upper()} required by ctcontroller not defined in your environment.')
 
-    # List of possible environment variables to be used by the controller
-    vars = {
-            'num_nodes':         {'required': True,  'type': str},
-            'site':              {'required': True,  'type': str},
-            'node_type':         {'required': True,  'type': str},
-            'gpu':               {'required': True,  'type': bool},
-            'model':             {'required': True,  'type': str},
-            'input':             {'required': True,  'type': str},
-            'ssh_key':           {'required': True,  'type': str},
-            'key_name':          {'required': False, 'type': str},
-            'ct_version':        {'required': True,  'type': str},
-            'user_name':         {'required': True,  'type': str},
-            'root':              {'required': False, 'type': str},
-            'provision_id':      {'required': False, 'type': int},
-            'job_id':            {'required': False, 'type': int}
-           }
-    cfg = {}
-    # iterate over variables and copy values into 
-    for v in vars.keys():
-        var = f'CT_CONTROLLER_{v.upper()}'
-        if var in os.environ:
-            cfg[v] = os.environ[var]
-
-    # Check for any required variables that have not been defined
-    for k, v in vars.items():
-        if v['required'] == True and (k not in cfg or cfg[k] == None):
-            print_and_exit(f'Required variable CT_CONTROLLER_{k.upper()} required by ctcontroller not defined in your environment.')
-    return cfg
+        self.provisioner_config = provisioner_config
+        self.application_config = application_config
 
 def main():
-    #parsed_args = parse_args(args)
-    #print(parsed_args)
-    cfg = parse_environment_variables()
-    if cfg['site'].startswith('CHI'):
-        from chameleon_provisioner import ChameleonProvisioner as SiteProvisioner
-    elif cfg['site'] == 'TACC':
-        from tacc_provisioner import TACCProvisioner as SiteProvisioner
-    from camera_traps import CameraTrapsManager as AppManager
+    controller = Controller()
+    if controller.provisioner_config['site'].startswith('CHI'):
+        from .chameleon_provisioner import ChameleonProvisioner as SiteProvisioner
+    elif controller.provisioner_config['site'] == 'TACC':
+        from .tacc_provisioner import TACCProvisioner as SiteProvisioner
+    from .camera_traps import CameraTrapsManager as AppManager
 
-    # If registering, initialize controller and return
-    #if parsed_args.subcommand == 'register':
-    #    controller = SiteController(cfg['site'], 'register', cfg['config_file'], user_name=cfg['user_name'], private_key=cfg['private_key'], key_name=cfg['key_name'])
-    #    return
+    provisioner = SiteProvisioner(controller.provisioner_config)
 
-    #if 'job_id' in parsed_args:
-    #    job_id = parsed_args.job_id
-    #else:
-    #    job_id = None
-    #if 'provision_id' in parsed_args:
-    #    provision_id = parsed_args.provision_id
-    #else:
-    #    provision_id = None
-    provisioner = SiteProvisioner(cfg)
-
-    #print('logging in...')
-    #controller.login()
-
-    #if parsed_args.subcommand == 'check':
-    #    controller.run_check(parsed_args.check_type)
-    #elif parsed_args.subcommand == 'provision':
-    #provisioner.provision_instance(cfg['num_nodes'], cfg['cpu_arch'], cfg['gpu'])
     provisioner.provision_instance()
-    #elif parsed_args.subcommand == 'run':
-    #    if parsed_args.provision_id is None:
-    #import sys; sys.exit(1)
-    ctmanager = AppManager(provisioner.get_remote_runner(), top_log_dir=provisioner.provision_dir, cfg=cfg)
+    ctmanager = AppManager(provisioner.get_remote_runner(), top_log_dir=provisioner.provision_dir, cfg=controller.application_config)
     ctmanager.run_job()
-    #ctmanager.shutdown_job()
-    #provisioner.shutdown_instance()
+    ctmanager.shutdown_job()
+    provisioner.shutdown_instance()
 
 if __name__ == '__main__':
     main()
