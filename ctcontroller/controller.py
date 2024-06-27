@@ -49,7 +49,7 @@ class Controller():
     # Determine the log directory and check that it is writable
     def set_log_dir(self):
         if 'root' in self.controller_config:
-            log_dir = self.controller_config['root']
+            log_dir = self.controller_config['output']
         else:
             log_dir = './output'
         if os.access(log_dir, os.W_OK):
