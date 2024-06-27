@@ -3,7 +3,6 @@ from .remote import RemoteRunner
 from textwrap import dedent
 
 class CameraTrapsManager():
-    #def __init__(self, runner: RemoteRunner, version: str, provision_id: str, top_log_dir: str, job_id: str=None, branch: str = None):
     def __init__(self, runner: RemoteRunner, log_dir: str, cfg):
         self.runner = runner
         self.version = cfg['ct_version']

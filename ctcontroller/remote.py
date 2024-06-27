@@ -85,14 +85,9 @@ class RemoteRunner():
             pass
 
         for path, _, files in os.walk(src):
-            #print(f'path={path}, files={files}')
             try:
                 self.sftp.mkdir(os.path.join(target,path))
             except IOError:
-                #print(f'could not create target {os.path.join(target, path)}')
                 pass
-            #print(f'files: {files}')
             for file in files:
-                #print(f'copying {path}/{file} to remote:{target}/{path}/{file}')
                 self.sftp.put(os.path.join(path,file),os.path.join(target,path,file))
-        #print(f'done walking')

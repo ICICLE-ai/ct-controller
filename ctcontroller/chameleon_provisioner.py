@@ -6,8 +6,6 @@ from .provisioner import Provisioner
 from .error import print_and_exit
 import random
 import string
-#import logging
-#logger = logging.getLogger(__name__)
 
 subcommand_map = {
     'lease': ['reservation', 'lease'],
