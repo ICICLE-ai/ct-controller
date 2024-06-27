@@ -1,8 +1,10 @@
-VER=0.1
+VER=`cat VERSION.txt`
 
 whl:
 	python setup.py bdist_wheel
 sdist:
 	python setup.py sdist
 image: whl
-	docker build --tag tapis/ctcontroller:$(VER) .
+	docker build --build-arg VER=$(VER) --tag tapis/ctcontroller:$(VER) .
+push: image
+	docker push tapis/ctcontroller:$(VER)

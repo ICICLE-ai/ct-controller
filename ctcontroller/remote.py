@@ -4,7 +4,7 @@ import os
 AuthenticationException = paramiko.ssh_exception.AuthenticationException
 
 class RemoteRunner():
-    def __init__(self, ip_address: str, username: str, pkey_path: str, provision_id: str, num_retries=30):
+    def __init__(self, ip_address: str, username: str, pkey_path: str, num_retries=30):
         import time
         self.client = None
         self.sftp = None
@@ -23,11 +23,14 @@ class RemoteRunner():
         self.ip_address = ip_address
         self.client = client
         self.sftp = self.client.open_sftp()
-        self.provision_id = provision_id
-        self.home_dir = f'/home/{username}'
+        self.set_home_dir()
+    
+    def set_home_dir(self):
+        _, stdout, _ = self.client.exec_command('pwd -P')
+        self.home_dir = stdout.readlines()[0].strip()
 
     def run(self, cmd: str) -> str:
-        print(f'Running {cmd} on remote server {self.ip_address}')
+        print(f'Running "{cmd}" on remote server "{self.ip_address}"')
         _stdin, stdout, _stderr = self.client.exec_command(cmd, get_pty=True)
         return stdout.read().decode('utf-8').strip()
 
@@ -36,10 +39,11 @@ class RemoteRunner():
             file.write(line)
 
     def tracked_run(self, cmd: str, outlog, errlog):
+        print(f'Running "{cmd}" on remote server "{self.ip_address}".\nLogging stdout=>{outlog} and stderr=>{errlog}')
         from threading import Thread
         _, stdout, stderr = self.client.exec_command(cmd, get_pty=True)
         outf = open(outlog, 'a+')
-        errf = open(outlog, 'a+')
+        errf = open(errlog, 'a+')
         out_thread = Thread(target=self.log_to_file, args=(outf, stdout))
         err_thread = Thread(target=self.log_to_file, args=(errf, stderr))
 
@@ -72,11 +76,23 @@ class RemoteRunner():
         if self.client: self.client.close()
 
     def copy_dir(self, src, target):
+        print(f'Copying from {src} on local system to {target} on remote')
+
+        # Create top-level target directory if it does not exist
+        try:
+            self.sftp.mkdir(target)
+        except IOError:
+            pass
+
         for path, _, files in os.walk(src):
+            #print(f'path={path}, files={files}')
             try:
                 self.sftp.mkdir(os.path.join(target,path))
-            except:
+            except IOError:
+                #print(f'could not create target {os.path.join(target, path)}')
                 pass
+            #print(f'files: {files}')
             for file in files:
-                print(f'copying {path}/{file} to remote:{target}/{path}/{file}')
+                #print(f'copying {path}/{file} to remote:{target}/{path}/{file}')
                 self.sftp.put(os.path.join(path,file),os.path.join(target,path,file))
+        #print(f'done walking')

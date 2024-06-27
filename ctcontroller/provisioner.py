@@ -12,27 +12,27 @@ class Provisioner:
             self.top_level_dir = self.get_top_level_dir(cfg['root'])
         else:
             self.top_level_dir = f'./{CT_ROOT}'
-        self.site = cfg['site']
-        self.site_dir = self.top_level_dir + '/' + self.site
-        self.user_name = cfg['user_name']
-        self.user_dir = f'{self.site_dir}/{self.user_name}'
-        if 'provision_id' not in cfg or cfg['provision_id'] is None:
-            provision_id = self.get_provision_id()
-        provision_dir = f'{self.user_dir}/provisions/{provision_id}'
-        provision_file = f'{provision_dir}/provision.yaml'
-        if os.path.exists(provision_file):
-            self.read_provision_info(provision_file)
-        else:
-            os.makedirs(f'{provision_dir}')
+        #self.site = cfg['site']
+        #self.site_dir = self.top_level_dir + '/' + self.site
+        #self.user_name = cfg['user_name']
+        #self.user_dir = f'{self.site_dir}/{self.user_name}'
+        #if 'provision_id' not in cfg or cfg['provision_id'] is None:
+        #    provision_id = self.get_provision_id()
+        #provision_dir = f'{self.user_dir}/provisions/{provision_id}'
+        #provision_file = f'{provision_dir}/provision.yaml'
+        #if os.path.exists(provision_file):
+        #    self.read_provision_info(provision_file)
+        #else:
+        #    os.makedirs(f'{provision_dir}')
 
-            self.set('provision_dir', provision_dir)
-            self.set('provision_id', provision_id)
-            self.set('private_key', cfg['ssh_key'])
-            self.set('key_name', cfg['key_name'])
-            self.set('ssh_key', {'name': self.key_name, 'path': self.private_key})
-            self.set('num_nodes', cfg['num_nodes'])
-            self.set('node_type', cfg['node_type'])
-            self.set('gpu', cfg['gpu'])
+        #    self.set('provision_dir', provision_dir)
+        #    self.set('provision_id', provision_id)
+        self.set('private_key', cfg['ssh_key'])
+        self.set('key_name', cfg['key_name'])
+        self.set('ssh_key', {'name': self.key_name, 'path': self.private_key})
+        self.set('num_nodes', cfg['num_nodes'])
+        self.set('node_type', cfg['node_type'])
+        self.set('gpu', cfg['gpu'])
         #self.env = os.environ
         #self.user_cache = f'{self.user_dir}/cache.pcl'
         #if not self.load_user_cache():
@@ -85,39 +85,41 @@ class Provisioner:
     #        return True
     #    return False
 
-    def save_user_cache(self):
-        from pickle import dump, HIGHEST_PROTOCOL
-        with open(self.user_cache, 'wb') as p:
-            dump(dict(self.env), p, HIGHEST_PROTOCOL)
+    #def save_user_cache(self):
+    #    from pickle import dump, HIGHEST_PROTOCOL
+    #    with open(self.user_cache, 'wb') as p:
+    #        dump(dict(self.env), p, HIGHEST_PROTOCOL)
 
-    def get_provision_id(self):
-        top_provision_dir = f'{self.user_dir}/provisions'
-        if os.path.exists(top_provision_dir):
-            subdirs = [f.name for f in os.scandir(top_provision_dir) if f.is_dir()]
-            numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
-            provision_id = str(max(numbered_subdirs) + 1)
-        else:
-            os.makedirs(top_provision_dir, exist_ok=True)
-            provision_id = '0'
-        return provision_id
+    #def get_provision_id(self):
+    #    top_provision_dir = f'{self.user_dir}/provisions'
+    #    if os.path.exists(top_provision_dir):
+    #        subdirs = [f.name for f in os.scandir(top_provision_dir) if f.is_dir()]
+    #        numbered_subdirs = [-1] + [int(d) for d in subdirs if d.isdigit()]
+    #        provision_id = str(max(numbered_subdirs) + 1)
+    #    else:
+    #        os.makedirs(top_provision_dir, exist_ok=True)
+    #        provision_id = '0'
+    #    return provision_id
 
     def set(self, name: str, value):
-        if name not in self.__dict__.keys() or  self.__getattribute__(name) is None:
-            super().__setattr__(name, value)
-            print(f'setting {name} to {value}')
-        #else:
-        #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
-        #if self.cmd == 'provision':
-        with open(self.provision_dir + '/provision.yaml', 'a+') as f:
-            f.write(f'{name}: {value}\n')
+        print(f'setting {name} to {value}')
+        super().__setattr__(name, value)
+    #    if name not in self.__dict__.keys() or  self.__getattribute__(name) is None:
+    #        super().__setattr__(name, value)
+    #        print(f'setting {name} to {value}')
+    #    #else:
+    #    #    print(f'Not setting {name} to {value}. Already defined as {super().__getattribute__(name)}')
+    #    #if self.cmd == 'provision':
+    #    with open(self.provision_dir + '/provision.yaml', 'a+') as f:
+    #        f.write(f'{name}: {value}\n')
 
-    def read_provision_info(self, provision_file: str):
-        import yaml
-        print(f'Reading provision info from {provision_file}')
-        with open(provision_file, 'r') as f:
-            provision_info = yaml.safe_load(f)
-        for k, v in provision_info.items():
-            self.__setattr__(k, str(v))
+    #def read_provision_info(self, provision_file: str):
+    #    import yaml
+    #    print(f'Reading provision info from {provision_file}')
+    #    with open(provision_file, 'r') as f:
+    #        provision_info = yaml.safe_load(f)
+    #    for k, v in provision_info.items():
+    #        self.__setattr__(k, str(v))
 
     def capture_shell(self, cmd):
         if isinstance(cmd, str):
@@ -138,8 +140,7 @@ class Provisioner:
         from .remote import RemoteRunner
         if ip_address is None:
             ip_address = self.ip_addresses
-        print(f'remote runner: {ip_address}, {self.remote_id}, {self.ssh_key["path"]}, {self.provision_id}')
-        return RemoteRunner(ip_address, self.remote_id, self.ssh_key['path'], self.provision_id)
+        return RemoteRunner(ip_address, self.remote_id, self.ssh_key['path'])
 
     def connect(self):
         from .remote import RemoteRunner
@@ -154,8 +155,8 @@ class Provisioner:
             print('Connection Failed')
             return False
 
-    def provision_instance(self):
-        pass
+    #def provision_instance(self):
+    #    pass
 
     #def login(self):
     #    if not self.load_user_cache():

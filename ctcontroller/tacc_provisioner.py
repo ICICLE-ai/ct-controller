@@ -36,7 +36,7 @@ class TACCProvisioner(Provisioner):
 
     def wait_available_node(self, node_type):
         import time
-        print('Waiting for a node to be available', end='')
+        print('Waiting for a node to be available')
         while self.reserve_node(node_type) == False:
             print('.', end='')
             time.sleep(3)
@@ -69,22 +69,22 @@ class TACCProvisioner(Provisioner):
                 return True
         return False
 
-    def load_user_cache(self):
-        # load ssh keys
-        if os.path.exists(self.user_cache):
-            from pickle import load
-            with open(self.user_cache, 'rb') as p:
-                self.env.update(load(p))
-                self.ssh_key = load(p)
-            return True
-        return False
+    #def load_user_cache(self):
+    #    # load ssh keys
+    #    if os.path.exists(self.user_cache):
+    #        from pickle import load
+    #        with open(self.user_cache, 'rb') as p:
+    #            self.env.update(load(p))
+    #            self.ssh_key = load(p)
+    #        return True
+    #    return False
 
-    def save_user_cache(self):
-        super(TACCProvisioner, self).save_user_cache()
-        # save ssh keys
-        from pickle import dump, HIGHEST_PROTOCOL
-        with open(self.user_cache, 'ab') as p:
-            dump(self.ssh_key, p, HIGHEST_PROTOCOL)
+    #def save_user_cache(self):
+    #    super(TACCProvisioner, self).save_user_cache()
+    #    # save ssh keys
+    #    from pickle import dump, HIGHEST_PROTOCOL
+    #    with open(self.user_cache, 'ab') as p:
+    #        dump(self.ssh_key, p, HIGHEST_PROTOCOL)
 
 
     #def provision_instance(self, nnodes: int, cpu: str, gpu: str, node_type: str):

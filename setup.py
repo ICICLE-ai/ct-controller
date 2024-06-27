@@ -1,7 +1,12 @@
 from setuptools import setup, find_packages
 
+with open('VERSION.txt', 'r') as f:
+    ver=f.read()
+
+ver = ver.strip()
+
 setup(name = 'ctcontroller',
-      version = '0.1',
+      version = ver,
       packages = find_packages(),
       install_requires = [
           'paramiko==3.3.1',

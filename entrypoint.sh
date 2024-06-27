@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python -c "import ctcontroller; ctcontroller.run()"
+python -u -c "import ctcontroller; ctcontroller.run()"
