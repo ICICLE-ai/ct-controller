@@ -15,8 +15,7 @@ class Controller():
             'key_name':          {'required': False, 'category': 'provisioner', 'type': str},
             'ct_version':        {'required': True,  'category': 'application', 'type': str},
             'user_name':         {'required': True,  'category': 'provisioner', 'type': str},
-            'root':              {'required': False, 'category': 'controller',  'type': str},
-            #'provision_id':      {'required': False, 'category': 'provisioner', 'type': int}, # for debugging only
+            'output':            {'required': False, 'category': 'controller',  'type': str},
             'job_id':            {'required': False, 'category': 'application', 'type': int}
         }
 

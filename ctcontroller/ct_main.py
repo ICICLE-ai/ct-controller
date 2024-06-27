@@ -15,8 +15,8 @@ def main():
                            log_dir=controller.log_directory,
                            cfg=controller.application_config)
     ctmanager.run_job()
-    #ctmanager.shutdown_job()
-    #provisioner.shutdown_instance()
+    ctmanager.shutdown_job()
+    provisioner.shutdown_instance()
 
 if __name__ == '__main__':
     main()
