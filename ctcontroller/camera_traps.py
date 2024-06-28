@@ -5,7 +5,7 @@ from textwrap import dedent
 class CameraTrapsManager():
     def __init__(self, runner: RemoteRunner, log_dir: str, cfg):
         self.runner = runner
-        self.version = cfg['ct_version']
+        #self.version = cfg['ct_version']
         self.log_dir = log_dir
         self.run_dir = 'inputs'
 

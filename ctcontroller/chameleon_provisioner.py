@@ -30,7 +30,7 @@ class ChameleonProvisioner(Provisioner):
 
         # ensure that app credentials are already defined in the environment
         if os.environ.get('OS_APPLICATION_CREDENTIAL_ID') is None or os.environ.get('OS_APPLICATION_CREDENTIAL_SECRET') is None:
-            raise Exception('Chameleon Application credentials must be specified in the environment')
+            print_and_exit('Chameleon Application credentials must be specified in the environment')
 
         # Configure lease and instance names
         if 'job_id' not in cfg:
@@ -77,7 +77,7 @@ class ChameleonProvisioner(Provisioner):
     def run_check(self, check_type=''):
         cmd = subcommand_map.get(check_type)
         if cmd is None:
-            raise Exception(f'"{check_type}" is not a valid input to the check subcommand')
+            raise print_and_exit(f'"{check_type}" is not a valid input to the check subcommand')
     
         cmd.append('list')
         shell.main(cmd)
@@ -110,15 +110,15 @@ class ChameleonProvisioner(Provisioner):
         if status == 'ACTIVE':
             return True
         elif status == 'ERROR':
-            raise Exception(f'The {lease_name} lease failed during provisioning.')
+            raise print_and_exit(f'The {lease_name} lease failed during provisioning.')
         elif status == 'TERMINATED':
-            raise Exception(f'The lease {lease_name} has been terminated.')
+            raise print_and_exit(f'The lease {lease_name} has been terminated.')
         elif status == 'STARTING':
             return False
         elif status == 'PENDING':
             return False
         else:
-            raise Exception(f'Lease in invalid state: {status}')
+            raise print_and_exit(f'Lease in invalid state: {status}')
 
     def check_server_ready(self, server_name):
         cmd = ['openstack', 'server', 'show', server_name, '-c', 'status', '-f', 'value']
@@ -130,12 +130,11 @@ class ChameleonProvisioner(Provisioner):
         elif status == 'STARTING':
             return False
         elif status == 'TERMINATED':
-            raise Exception(f'Server {server_name} instance was terminated')
+            raise print_and_exit(f'Server {server_name} instance was terminated')
         elif status == 'ERROR':
-            raise Exception(f'Server {server_name} instance could not be created')
+            raise print_and_exit(f'Server {server_name} instance could not be created')
         else:
-            print(f'Server in invalid state {status}')
-            raise Exception()
+            raise Exception(f'Server {server_name} in invalid state {status}')
     
     def reserve_ip(self):
         cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount={self.num_nodes}', self.ip_lease_name, '-f', 'value', '-c', 'id']

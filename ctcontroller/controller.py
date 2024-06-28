@@ -16,25 +16,26 @@ class Controller():
             'ct_version':        {'required': True,  'category': 'application', 'type': str},
             'user_name':         {'required': True,  'category': 'provisioner', 'type': str},
             'output':            {'required': False, 'category': 'controller',  'type': str},
-            'job_id':            {'required': False, 'category': 'application', 'type': int}
+            'job_id':            {'required': False, 'category': 'application', 'type': str}
         }
 
         provisioner_config = {}
         application_config = {}
         controller_config = {}
 
-        # iterate over variables and copy values into 
+        # iterate over variables and copy values into config dictionaries
         for k, v in self.vars.items():
             var = f'CT_CONTROLLER_{k.upper()}'
             found = False
             if var in os.environ:
+                val = self.type_conversion(k, os.environ['var'])
                 found = True
                 if v['category'] == 'provisioner':
-                    provisioner_config[k] = os.environ[var]
+                    provisioner_config[k] = val
                 if v['category'] == 'application':
-                    application_config[k] = os.environ[var]
+                    application_config[k] = val
                 if v['category'] == 'controller':
-                    controller_config[k] = os.environ[var]
+                    controller_config[k] = val
 
             # Check for any required variables that have not been defined
             if v['required'] == True and found == False:
@@ -46,6 +47,25 @@ class Controller():
 
         self.set_log_dir()
 
+    def type_conversion(self, key: str, val: str, type):
+        if type == bool:
+            if val.lower() in ['1', 't', 'true', 'yes', 'y']:
+                new = True
+            elif val.lower() in ['0', 'f', 'false', 'no', 'n']:
+                new = False
+            else:
+                raise print_and_exit(f'{key}={val} is not valid. {key} must be a boolean.')
+        if type == int:
+            if val.isdigit():
+                new = int(val)
+            else:
+                raise print_and_exit(f'{key}={val} is not valid. {key} must be integer.')
+        elif type == str:
+            new = val
+        else:
+            raise Exception(f'Invalid type for variable {key}.')
+        return new
+
     # Determine the log directory and check that it is writable
     def set_log_dir(self):
         if 'root' in self.controller_config:
@@ -55,4 +75,4 @@ class Controller():
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:
-            raise Exception(f'Log directory {self.log_dir} is not writable.')
+            print_and_exit(f'Log directory {self.log_dir} is not writable.')

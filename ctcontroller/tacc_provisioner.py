@@ -1,3 +1,4 @@
+from .error import print_and_exit
 from .provisioner import Provisioner
 import os
 
@@ -23,7 +24,7 @@ class TACCProvisioner(Provisioner):
         from .remote import AuthenticationException
         available_nodes = self.available_nodes[node_type]
         if available_nodes == []:
-            raise Exception(f'No node of type {node_type} is available')
+            print_and_exit(f'No node of type {node_type} is available')
         for node in self.available_nodes[node_type]:
             try:
                 runner = self.get_remote_runner(node)
