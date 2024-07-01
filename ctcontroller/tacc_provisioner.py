@@ -5,11 +5,12 @@ import os
 class TACCProvisioner(Provisioner):
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
+        self.site = cfg['site']
         super(TACCProvisioner, self).__init__(cfg)
         self.set('remote_id', cfg['user_name'])
 
         self.available_nodes = {
-                                     'x86': [],
+                                     'x86': ['c040.rodeo.tacc.utexas.edu'],
                                      'jetson': [
                                                 'cicnano01.tacc.utexas.edu',
                                                 'cicnano02.tacc.utexas.edu',

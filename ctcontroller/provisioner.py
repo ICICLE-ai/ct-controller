@@ -1,16 +1,28 @@
 import os
+import yaml
 from subprocess import run
 
 CT_ROOT = '.ctcontroller'
 
 class Provisioner:
     def __init__(self, cfg):
-        self.set('private_key', cfg['ssh_key'])
-        self.set('key_name', cfg['key_name'])
+        if cfg['use_service_acct']:
+            self.lookup_auth(cfg['config_path'])
+        else:
+            self.set('private_key', cfg['ssh_key'])
+            self.set('key_name', cfg['key_name'])
         self.set('ssh_key', {'name': self.key_name, 'path': self.private_key})
         self.set('num_nodes', cfg['num_nodes'])
         self.set('node_type', cfg['node_type'])
         self.set('gpu', cfg['gpu'])
+
+    def lookup_auth(self, config_path):
+        if not os.path.exists(config_path):
+            raise Exception('Config file not found')
+        with open(config_path, 'r') as f:
+            auth = yaml.safe_load(f)
+        self.set('key_name', auth[self.site]['Name'])
+        self.set('private_key', auth[self.site]['Path'])
 
     def set(self, name: str, value):
         print(f'setting {name} to {value}')

@@ -11,5 +11,6 @@ setup(name = 'ctcontroller',
       install_requires = [
           'paramiko==3.3.1',
           'cryptography==41.0.3',
+          'pyyaml',
       ],
 )

@@ -79,10 +79,10 @@ class RemoteRunner():
         print(f'Copying from {src} on local system to {target} on remote')
 
         # Create top-level target directory if it does not exist
-        try:
-            self.sftp.mkdir(target)
-        except IOError:
-            pass
+        #try:
+        #    self.sftp.mkdir(target)
+        #except IOError:
+        #    pass
 
         for path, _, files in os.walk(src):
             try:
@@ -91,3 +91,10 @@ class RemoteRunner():
                 pass
             for file in files:
                 self.sftp.put(os.path.join(path,file),os.path.join(target,path,file))
+        return os.path.join(target, os.path.basename(src))
+
+    def copy_file(self, src: str, target: str):
+        self.sftp.put(src, target)
+
+    def mkdir(self, pth: str):
+        self.sftp.mkdir(pth)

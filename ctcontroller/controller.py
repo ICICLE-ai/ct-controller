@@ -1,22 +1,27 @@
 import os
+import json
 from .error import print_and_exit
 
 class Controller():
     def __init__(self):
         # List of possible environment variables to be used by the controller
         self.vars = {
-            'num_nodes':         {'required': True,  'category': 'provisioner', 'type': str},
-            'site':              {'required': True,  'category': 'provisioner', 'type': str},
-            'node_type':         {'required': True,  'category': 'provisioner', 'type': str},
-            'gpu':               {'required': True,  'category': 'provisioner', 'type': bool},
-            'model':             {'required': True,  'category': 'application', 'type': str},
-            'input':             {'required': True,  'category': 'application', 'type': str},
-            'ssh_key':           {'required': True,  'category': 'provisioner', 'type': str},
-            'key_name':          {'required': False, 'category': 'provisioner', 'type': str},
-            'ct_version':        {'required': True,  'category': 'application', 'type': str},
-            'user_name':         {'required': True,  'category': 'provisioner', 'type': str},
-            'output':            {'required': False, 'category': 'controller',  'type': str},
-            'job_id':            {'required': False, 'category': 'application', 'type': str}
+            'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
+            'site':              {'required': True,  'category': ['provisioner'], 'type': str},
+            'node_type':         {'required': True,  'category': ['provisioner'], 'type': str},
+            'gpu':               {'required': True,  'category': ['provisioner', 'application'], 'type': bool},
+            'model':             {'required': False, 'category': ['application'], 'type': str},
+            'input':             {'required': False, 'category': ['application'], 'type': str},
+            'ssh_key':           {'required': True,  'category': ['provisioner'], 'type': str},
+            'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
+            'ct_version':        {'required': True,  'category': ['application'], 'type': str},
+            'user_name':         {'required': True,  'category': ['provisioner'], 'type': str},
+            'output':            {'required': False, 'category': ['controller'],  'type': str},
+            'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
+            'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
+            'app_src':           {'required': True,  'category': ['application'], 'type': str},
+            'use_service_acct':  {'required': False, 'category': ['provisioner'], 'type': bool},
+            'config_path':       {'required': False, 'category': ['provisioner'], 'type': str}
         }
 
         provisioner_config = {}
@@ -28,13 +33,13 @@ class Controller():
             var = f'CT_CONTROLLER_{k.upper()}'
             found = False
             if var in os.environ:
-                val = self.type_conversion(k, os.environ['var'])
+                val = self.type_conversion(k, os.environ[var], v['type'])
                 found = True
-                if v['category'] == 'provisioner':
+                if 'provisioner' in v['category']:
                     provisioner_config[k] = val
-                if v['category'] == 'application':
+                if 'application' in v['category']:
                     application_config[k] = val
-                if v['category'] == 'controller':
+                if 'controller' in v['category']:
                     controller_config[k] = val
 
             # Check for any required variables that have not been defined
@@ -55,15 +60,20 @@ class Controller():
                 new = False
             else:
                 raise print_and_exit(f'{key}={val} is not valid. {key} must be a boolean.')
-        if type == int:
+        elif type == int:
             if val.isdigit():
                 new = int(val)
             else:
                 raise print_and_exit(f'{key}={val} is not valid. {key} must be integer.')
         elif type == str:
             new = val
+        elif type == 'json':
+            try:
+                new = json.loads(val)
+            except ValueError:
+                print_and_exit(f'Invalid json passed to {key}:\n{val}')
         else:
-            raise Exception(f'Invalid type for variable {key}.')
+            raise Exception(f'Invalid type {type} for variable {key}.')
         return new
 
     # Determine the log directory and check that it is writable

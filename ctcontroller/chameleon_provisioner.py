@@ -6,6 +6,7 @@ from .provisioner import Provisioner
 from .error import print_and_exit
 import random
 import string
+import yaml
 
 subcommand_map = {
     'lease': ['reservation', 'lease'],
@@ -16,16 +17,17 @@ subcommand_map = {
 
 class ChameleonProvisioner(Provisioner):
     def __init__(self, cfg):
+        self.site = cfg['site']
         super(ChameleonProvisioner, self).__init__(cfg)
 
 
-        subsite = cfg['site'].split('@')[1].lower()
+        subsite = self.site.split('@')[1].lower()
 
         # set Chameleon-specific environment variables
         os.environ['OS_AUTH_TYPE'] = 'v3applicationcredential'
         os.environ['OS_AUTH_URL'] = f'https://chi.{subsite}.chameleoncloud.org:5000/v3'
         os.environ['OS_IDENTITY_API_VERSION'] = '3'
-        os.environ['OS_REGION_NAME'] = cfg['site']
+        os.environ['OS_REGION_NAME'] = self.site
         os.environ['OS_INTERFACE'] = 'public'
 
         # ensure that app credentials are already defined in the environment
@@ -56,6 +58,16 @@ class ChameleonProvisioner(Provisioner):
         self.set('image', None)
         self.set('remote_id', 'cc')
         self.set('cpu_arch', self.get_cpu_arch())
+
+    def lookup_auth(self, config_path):
+        if not os.path.exists(config_path):
+            raise Exception('Config file not found')
+        with open(config_path, 'r') as f:
+            auth = yaml.safe_load(f)
+        self.set('key_name', auth[self.site]['Name'])
+        self.set('private_key', auth[self.site]['Path'])
+        os.environ['OS_APPLICATION_CREDENTIAL_ID'] = auth[self.site]['ID']
+        os.environ['OS_APPLICATION_CREDENTIAL_SECRET'] = auth[self.site]['Secret']
 
     def get_cpu_arch(self):
         cmd = ['openstack', 'reservation', 'host', 'list', '-f',

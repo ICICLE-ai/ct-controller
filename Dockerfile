@@ -3,14 +3,15 @@
 FROM python:3.12
 ARG VER
 
-ADD dist/ctcontroller-${VER}-py3-none-any.whl /
 ADD ./entrypoint.sh /entrypoint.sh
 ADD ./inputs /inputs
+ADD ./custom_install /camera_traps_installer
 
 RUN chmod +x /entrypoint.sh
 
-RUN pip install /ctcontroller-${VER}-py3-none-any.whl
-RUN rm /ctcontroller-${VER}-py3-none-any.whl
+ADD dist/ctcontroller-${VER}-py3-none-any.whl /
+RUN pip install /ctcontroller-${VER}-py3-none-any.whl \
+    && rm /ctcontroller-${VER}-py3-none-any.whl
 
 
 ENTRYPOINT ["./entrypoint.sh"]
