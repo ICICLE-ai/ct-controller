@@ -8,15 +8,14 @@ class RemoteRunner():
         import time
         self.client = None
         self.sftp = None
+        #print(f"Connecting to server: ssh -i {pkey_path} {username}@{ip_address}")
         pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
         client.set_missing_host_key_policy(policy)
     
-        print(f"Connecting to server: {ip_address}")
         for i in range(num_retries):
             try:
-                #print(f'paramiko ssh -i {pkey_path} {username}@{ip_address}')
                 client.connect(ip_address, username=username, pkey=pkey)
                 break
             except OSError:

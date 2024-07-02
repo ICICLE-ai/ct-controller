@@ -11,9 +11,12 @@ class Provisioner:
         # If the SSH key and key name were provided, use them. Otherwise, try to use a service account.
         self.get_config(cfg['config_path'])
         if ('ssh_key' in cfg and cfg['ssh_key'] is not None and cfg['ssh_key'] != ''
-            and 'key_name' in cfg and cfg['key_name'] is not None and cfg['key_name'] != ''):
+            and 'key_name' in cfg and cfg['key_name'] is not None and cfg['key_name'] != ''
+            and (cfg['target_user'] is not None or cfg['user_name_required'] == False)):
             self.set('private_key', cfg['ssh_key'])
             self.set('key_name', cfg['key_name'])
+            self.set('use_service_acct', False)
+            print('Using user-provided credentials')
         else:
             self.lookup_auth(cfg['config_path'])
         self.set('ssh_key', {'name': self.key_name, 'path': self.private_key})
@@ -35,8 +38,10 @@ class Provisioner:
             auth = yaml.safe_load(f)
         if self.user not in auth['Users']:
             print_and_exit(f'{self.user} does not have appropriate permissions to launch with a service account.')
+        print('Using service account')
         self.set('key_name', auth[self.site]['Name'])
         self.set('private_key', auth[self.site]['Path'])
+        self.set('use_service_acct', True)
 
     def set(self, name: str, value):
         print(f'setting {name} to {value}')

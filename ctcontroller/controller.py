@@ -1,4 +1,5 @@
 import os
+import pwd
 import json
 from .error import print_and_exit
 
@@ -52,7 +53,7 @@ class Controller():
             provisioner_config['requesting_user'] = os.environ['_tapisJobOwner']
         else:
             self.tapis = False
-            provisioner_config['requesting_user'] = os.getlogin()
+            provisioner_config['requesting_user'] = pwd.getpwuid(os.getuid())[0]
 
         self.provisioner_config = provisioner_config
         self.application_config = application_config

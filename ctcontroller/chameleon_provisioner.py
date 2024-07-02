@@ -18,6 +18,7 @@ subcommand_map = {
 class ChameleonProvisioner(Provisioner):
     def __init__(self, cfg):
         self.site = cfg['site']
+        cfg['user_name_required'] = False
         super(ChameleonProvisioner, self).__init__(cfg)
 
 
