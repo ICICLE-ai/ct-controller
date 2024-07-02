@@ -44,11 +44,13 @@ class ChameleonProvisioner(Provisioner):
 
         # Set network id
         cmd = ['openstack', 'network', 'list', '--name', 'sharednet1', '-c', 'ID', '-f', 'value']
-        self.set('network_id', self.capture_shell(cmd))
+        network_id, _ = self.capture_shell(cmd)
+        self.set('network_id', network_id)
         
         # Set public network id
         cmd = ['openstack', 'network', 'show', 'public', '-c', 'id', '-f', 'value']
-        self.set('public_network_id', self.capture_shell(cmd))
+        public_network_id, _ = self.capture_shell(cmd)
+        self.set('public_network_id', public_network_id)
 
         # Parameters set during provisioning
         self.set('lease_id', None)
@@ -75,7 +77,7 @@ class ChameleonProvisioner(Provisioner):
     def get_cpu_arch(self):
         cmd = ['openstack', 'reservation', 'host', 'list', '-f',
                'csv', '-c', 'node_type', '-c', 'architecture.platform_type', '-c', 'cpu_arch']
-        all_nodes = self.capture_shell(cmd)
+        all_nodes, _ = self.capture_shell(cmd)
         for node in all_nodes.split('\n'):
             if f'"{self.node_type}"' in node:
                 break
@@ -103,7 +105,7 @@ class ChameleonProvisioner(Provisioner):
                '-c', 'gpu.gpu',
                '-c', 'architecture.platform_type',
                '-c', 'processor.other_description']
-        out = self.capture_shell(cmd)
+        out, _ = self.capture_shell(cmd)
         return out
     
     def get_node_type(self, cpu, gpu):
@@ -115,13 +117,13 @@ class ChameleonProvisioner(Provisioner):
         reservation = f'min={self.num_nodes},max={self.num_nodes},resource_type=physical:host,resource_properties={resource_properties}'
         cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
         print(' '.join(cmd))
-        lease_out = self.capture_shell(cmd)
+        lease_out, _ = self.capture_shell(cmd)
         lease_id = lease_out.split('\n')[1]
         self.set('lease_id', lease_id)
     
     def check_lease_ready(self, lease_name, lease_id):
         cmd = ['openstack', 'reservation', 'lease', 'show', lease_id, '-c', 'status', '-f', 'value']
-        status = self.capture_shell(cmd)
+        status, _ = self.capture_shell(cmd)
         if status == 'ACTIVE':
             return True
         elif status == 'ERROR':
@@ -137,7 +139,7 @@ class ChameleonProvisioner(Provisioner):
 
     def check_server_ready(self, server_name):
         cmd = ['openstack', 'server', 'show', server_name, '-c', 'status', '-f', 'value']
-        status = self.capture_shell(cmd)
+        status, _ = self.capture_shell(cmd)
         if status == 'ACTIVE':
             return True
         elif status == 'BUILD':
@@ -154,14 +156,17 @@ class ChameleonProvisioner(Provisioner):
     def reserve_ip(self):
         cmd = ['openstack'] + subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount={self.num_nodes}', self.ip_lease_name, '-f', 'value', '-c', 'id']
         print(f'Reserving lease for floating ip addresses\n{cmd}')
-        lease_out = self.capture_shell(cmd)
+        lease_out, err = self.capture_shell(cmd)
+        if 'ERROR: Not enough floating IPs available' in err:
+            self.shutdown_instance()
+            print_and_exit('Leases have been deleted. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.set('ip_lease_id', lease_id)
     
     def get_reservation_id(self):
         if self.reservation_id is None:
             cmd = ['openstack', 'reservation', 'lease', 'show', self.lease_name, '-c', 'reservations', '-f', 'value']
-            out = self.capture_shell(cmd)
+            out, _ = self.capture_shell(cmd)
             # parse resid
             m=search(r'"id": "([^"]+)"', out )
             self.set('reservation_id', m.groups()[0])
@@ -175,7 +180,8 @@ class ChameleonProvisioner(Provisioner):
         if 'gpu' in self.node_info and self.node_info['gpu'] == True:
             cmd += ['--tag', 'gpu']
         print(cmd)
-        self.set('image', self.capture_shell(cmd))
+        image, _ = self.capture_shell(cmd)
+        self.set('image', image)
     
     def create_instance(self):
         import time
@@ -195,7 +201,8 @@ class ChameleonProvisioner(Provisioner):
                                '-c', 'id', '-f', 'value',
                                self.server_name]
         print(cmd)
-        self.set('server_id', self.capture_shell(cmd))
+        server_id, _ = self.capture(cmd)
+        self.set('server_id', server_id)
         # Set ip address for instance
         self.get_ip_addresses()
     
@@ -211,8 +218,8 @@ class ChameleonProvisioner(Provisioner):
     
     def get_ip_reservation_id(self):
         cmd = ['openstack'] + subcommand_map['lease'] + ['show', self.ip_lease_name, '-c', 'reservations', '-f', 'value']
-        out = self.capture_shell(cmd)
-        m=search(r'"id": "([^"]+)"', out )
+        out, _ = self.capture_shell(cmd)
+        m  = search(r'"id": "([^"]+)"', out )
         resid = m.groups()[0]
         self.set('ip_reservation_id', resid)
     
@@ -234,8 +241,8 @@ class ChameleonProvisioner(Provisioner):
         cmd = subcommand_map['server'] + ['add', 'floating', 'ip', self.server_name, self.ip_addresses]
         shell.main(cmd)
         check_cmd = ['openstack', 'server', 'show', self.server_name, '-c', 'addresses', '-f', 'value']
-        print(f'{check_cmd=}')
-        print(self.capture_shell(check_cmd))
+        #print(f'{check_cmd=}')
+        #print(self.capture_shell(check_cmd))
         while self.capture_shell(check_cmd) == '':
             time.sleep(3)
     
