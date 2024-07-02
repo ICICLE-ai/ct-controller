@@ -6,7 +6,7 @@ import yaml
 class TACCProvisioner(Provisioner):
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
-        self.site = cfg['site']
+        self.site = cfg['target_site']
         cfg['user_name_required'] = True
         super(TACCProvisioner, self).__init__(cfg)
 

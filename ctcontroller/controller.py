@@ -8,7 +8,7 @@ class Controller():
         # List of possible environment variables to be used by the controller
         self.vars = {
             'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
-            'site':              {'required': True,  'category': ['provisioner'], 'type': str},
+            'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
             'node_type':         {'required': True,  'category': ['provisioner'], 'type': str},
             'gpu':               {'required': True,  'category': ['provisioner', 'application'], 'type': bool},
             'model':             {'required': False, 'category': ['application'], 'type': str},

@@ -3,9 +3,9 @@ from .controller import Controller
 
 def main():
     controller = Controller()
-    if controller.provisioner_config['site'].startswith('CHI'):
+    if controller.provisioner_config['target_site'].startswith('CHI'):
         from .chameleon_provisioner import ChameleonProvisioner as SiteProvisioner
-    elif controller.provisioner_config['site'] == 'TACC':
+    elif controller.provisioner_config['target_site'] == 'TACC':
         from .tacc_provisioner import TACCProvisioner as SiteProvisioner
 
     provisioner = SiteProvisioner(controller.provisioner_config)
