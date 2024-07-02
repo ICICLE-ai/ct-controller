@@ -12,16 +12,16 @@ class Controller():
             'gpu':               {'required': True,  'category': ['provisioner', 'application'], 'type': bool},
             'model':             {'required': False, 'category': ['application'], 'type': str},
             'input':             {'required': False, 'category': ['application'], 'type': str},
-            'ssh_key':           {'required': True,  'category': ['provisioner'], 'type': str},
+            'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
             'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
-            'ct_version':        {'required': True,  'category': ['application'], 'type': str},
-            'user_name':         {'required': True,  'category': ['provisioner'], 'type': str},
+            'ct_version':        {'required': False, 'category': ['application'], 'type': str},
+            'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
             'output':            {'required': False, 'category': ['controller'],  'type': str},
             'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
             'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
             'app_src':           {'required': True,  'category': ['application'], 'type': str},
-            'use_service_acct':  {'required': False, 'category': ['provisioner'], 'type': bool},
-            'config_path':       {'required': False, 'category': ['provisioner'], 'type': str}
+            #'use_service_acct':  {'required': False, 'category': ['provisioner'], 'type': bool},
+            'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
         }
 
         provisioner_config = {}
@@ -45,6 +45,14 @@ class Controller():
             # Check for any required variables that have not been defined
             if v['required'] == True and found == False:
                 print_and_exit(f'Required variable CT_CONTROLLER_{k.upper()} required by ctcontroller not defined in your environment.')
+
+        # Get the requester's username
+        if '_tapisJobOwner' in os.environ:
+            self.tapis = True
+            provisioner_config['requesting_user'] = os.environ['_tapisJobOwner']
+        else:
+            self.tapis = False
+            provisioner_config['requesting_user'] = os.getlogin()
 
         self.provisioner_config = provisioner_config
         self.application_config = application_config

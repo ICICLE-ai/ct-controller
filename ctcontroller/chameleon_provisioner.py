@@ -64,6 +64,8 @@ class ChameleonProvisioner(Provisioner):
             raise Exception('Config file not found')
         with open(config_path, 'r') as f:
             auth = yaml.safe_load(f)
+        if self.user not in auth['Users']:
+            print_and_exit(f'{self.user} does not have appropriate permissions to launch with a service account.')
         self.set('key_name', auth[self.site]['Name'])
         self.set('private_key', auth[self.site]['Path'])
         os.environ['OS_APPLICATION_CREDENTIAL_ID'] = auth[self.site]['ID']

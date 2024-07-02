@@ -1,23 +1,15 @@
 from .error import print_and_exit
 from .provisioner import Provisioner
 import os
+import yaml
 
 class TACCProvisioner(Provisioner):
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
         self.site = cfg['site']
         super(TACCProvisioner, self).__init__(cfg)
-        self.set('remote_id', cfg['user_name'])
 
-        self.available_nodes = {
-                                     'x86': ['c040.rodeo.tacc.utexas.edu'],
-                                     'jetson': [
-                                                'cicnano01.tacc.utexas.edu',
-                                                'cicnano02.tacc.utexas.edu',
-                                                'cicnano03.tacc.utexas.edu'
-                                               ],
-                                     'rpi': []
-                                    }
+        self.available_nodes = self.site_config['Hosts']
         self.set('lock_file', 'ctcontroller.lock')
         self.set('ip_addresses', None)
 
@@ -28,21 +20,22 @@ class TACCProvisioner(Provisioner):
             print_and_exit(f'No node of type {node_type} is available')
         for node in self.available_nodes[node_type]:
             try:
-                runner = self.get_remote_runner(node)
+                runner = self.get_remote_runner(ip_address=node['IP'], remote_id=node['Username'])
             except AuthenticationException:
-                #print(f'node {node} cannot be accessed')
+                print(f'Authentication failed while connecting to node {node}')
                 continue
             except TimeoutError:
-                #print(f'node {node} cannot be accessed')
+                print(f'SSH connection timed out while connecting node {node}')
                 continue
             if runner.file_exists(self.lock_file):
-                #print(f'node {node} in use, going to next node...')
+                print(f'node {node} in use, going to next node...')
                 del runner
                 continue
             else:
                 runner.create_file(self.lock_file)
                 self.runner = runner
-                self.set('ip_addresses', node)
+                self.set('ip_addresses', node['IP'])
+                self.set('remote_id', node['Username'])
                 print(f'node {node} available')
                 return True
         return False

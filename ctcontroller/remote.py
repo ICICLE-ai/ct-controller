@@ -16,9 +16,11 @@ class RemoteRunner():
         print(f"Connecting to server: {ip_address}")
         for i in range(num_retries):
             try:
+                #print(f'paramiko ssh -i {pkey_path} {username}@{ip_address}')
                 client.connect(ip_address, username=username, pkey=pkey)
                 break
             except OSError:
+                #print('os error while trying to connect to {ip_address}')
                 time.sleep(10)
         self.ip_address = ip_address
         self.client = client
