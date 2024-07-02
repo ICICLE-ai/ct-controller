@@ -50,7 +50,7 @@ class TACCProvisioner(Provisioner):
                 self.runner = runner
                 self.set('ip_addresses', node['IP'])
                 self.set('remote_id', node['Username'])
-                print(f'node {node} available')
+                print(f'node {node['IP']} available')
                 return True
         return False
 

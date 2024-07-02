@@ -6,7 +6,7 @@ class CameraTrapsManager():
     def __init__(self, runner: RemoteRunner, log_dir: str, cfg):
         self.runner = runner
         self.log_dir = log_dir
-        self.src_dir = cfg['app_src']
+        #self.src_dir = cfg['app_src']
         self.run_dir = None
 
         self.version = cfg.get('ct_version')
@@ -38,14 +38,21 @@ class CameraTrapsManager():
         prune_cmd = 'docker container prune -f'
         self.runner.run(prune_cmd)
         # Copy over run scripts
-        remote_installer_path = self.runner.copy_dir(f'./{self.src_dir}', f'{self.runner.home_dir}')
-        self.run_dir = f'{remote_installer_path}/run'
+        #remote_installer_path = self.runner.copy_dir(f'./{self.src_dir}', f'{self.runner.home_dir}')
+        #self.run_dir = f'{remote_installer_path}/run'
+        self.run_dir = f'{self.runner.home_dir}/ct_run'
         # Generate config file
-        self.generate_cfg_file(remote_installer_path)
+        #self.generate_cfg_file(remote_installer_path)
+        self.generate_cfg_file(self.runner.home_dir)
         # Install to run directory
+        #install_cmd = dedent(f"""
+        #cd {remote_installer_path}
+        #sh install.sh {remote_installer_path} ct_controller.yml
+        #""")
         install_cmd = dedent(f"""
-        cd {remote_installer_path}
-        sh install.sh {remote_installer_path} ct_controller.yml
+        cd {self.runner.home_dir}
+        docker run -it --rm --user `id -u`:`id -g` -v {self.runner.home_dir}:/host/ -e INSTALL_HOST_PATH={self.runner.home_dir} -e INPUT_FILE=ct_controller.yml tapis/camera-traps-installer
+        rm ct_controller.yml
         """)
         out = self.runner.run(install_cmd)
         print(out)
@@ -56,8 +63,8 @@ class CameraTrapsManager():
 
     def remove_app(self):
         cmd = f'rm -rf {self.run_dir}'
-        #out = self.runner.run(cmd)
-        #print(out)
+        out = self.runner.run(cmd)
+        print(out)
 
     def docker_compose_up(self):
         # Run docker compose up to start camera traps code

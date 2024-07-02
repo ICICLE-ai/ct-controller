@@ -4,7 +4,6 @@ FROM python:3.12
 ARG VER
 
 ADD ./entrypoint.sh /entrypoint.sh
-ADD ./custom_install /camera_traps_installer
 
 RUN chmod +x /entrypoint.sh
 
