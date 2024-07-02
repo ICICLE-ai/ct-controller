@@ -17,7 +17,7 @@ class Controller():
             'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
             'ct_version':        {'required': False, 'category': ['application'], 'type': str},
             'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
-            'output':            {'required': False, 'category': ['controller'],  'type': str},
+            'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
             'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
             'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
             'app_src':           {'required': True,  'category': ['application'], 'type': str},
@@ -88,7 +88,7 @@ class Controller():
     # Determine the log directory and check that it is writable
     def set_log_dir(self):
         if 'root' in self.controller_config:
-            log_dir = self.controller_config['output']
+            log_dir = self.controller_config['output_dir']
         else:
             log_dir = './output'
         if os.access(log_dir, os.W_OK):
