@@ -173,7 +173,7 @@ class ChameleonProvisioner(Provisioner):
         if 'cpu' in self.node_info:
             cmd += ['--tag', self.node_info['cpu']]
         if 'gpu' in self.node_info and self.node_info['gpu'] == True:
-            cmd += ['--tag', self.node_info['gpu']]
+            cmd += ['--tag', 'gpu']
         print(cmd)
         self.set('image', self.capture_shell(cmd))
     

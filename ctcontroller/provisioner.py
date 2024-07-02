@@ -62,7 +62,7 @@ class Provisioner:
         out = p.stdout.decode('utf-8').strip()
         err = p.stderr.decode('utf-8').strip()
         if err != '':
-            print(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\n')
+            print(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\033[00m\n')
         return out
     
     def get_remote_runner(self, ip_address=None, remote_id=None):
