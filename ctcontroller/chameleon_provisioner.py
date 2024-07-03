@@ -201,7 +201,7 @@ class ChameleonProvisioner(Provisioner):
                                '-c', 'id', '-f', 'value',
                                self.server_name]
         print(cmd)
-        server_id, _ = self.capture(cmd)
+        server_id, _ = self.capture_shell(cmd)
         self.set('server_id', server_id)
         # Set ip address for instance
         self.get_ip_addresses()
