@@ -16,9 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: main
     steps:
-      - name: Set VER
+      - name: Check cwd
         run: |
           ls
+      - name: Set VER
+        run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             #VER=${{ inputs.release_tag }}
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
