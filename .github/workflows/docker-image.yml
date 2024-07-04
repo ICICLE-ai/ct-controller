@@ -4,11 +4,11 @@ on:
   release:
     types: [released]
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: ''
-        required: true
-        type: string
+    #inputs:
+    #  release_tag:
+    #    description: ''
+    #    required: true
+    #    type: string
 
 
 jobs:
@@ -16,10 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: main
     steps:
-      - name: Set TRAPS_REL
+      - name: Set VER
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
-            VER=${{ inputs.release_tag }}
+            #VER=${{ inputs.release_tag }}
+            VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
           else
             VER=${{ github.event.release.tag_name }}
           fi

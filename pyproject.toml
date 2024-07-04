@@ -1,0 +1,22 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+name = "ctcontroller"
+description = "A tool to manage the provisioning and releasing of edge hardware as well as running and shutting down the camera-traps application."
+requires-python = ">= 3.8"
+dynamic = ["version"]
+dependencies = [
+ "paramiko>=3.4.0",
+ "cryptography>=42.0.4",
+ "python-chi==0.17.11",
+ "pyyaml",
+ "python-blazarclient @git+https://github.com/ChameleonCloud/python-blazarclient.git@chameleoncloud/xena",
+]
+
+[tool.hatch.version]
+path = "ctcontroller/__init__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
