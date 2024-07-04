@@ -16,17 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: main
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set VER
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
-            #VER=${{ inputs.release_tag }}
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
           else
             VER=${{ github.event.release.tag_name }}
           fi
           echo "VER=$VER" >> "$GITHUB_ENV"
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
