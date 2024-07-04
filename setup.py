@@ -13,5 +13,6 @@ setup(name = 'ctcontroller',
           'cryptography>=42.0.4',
           'python-chi==0.17.11',
           'pyyaml',
+          'python-blazarclient @ git+https://github.com/ChameleonCloud/python-blazarclient.git@chameleoncloud/xena',
       ],
 )
