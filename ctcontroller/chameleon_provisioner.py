@@ -81,6 +81,8 @@ class ChameleonProvisioner(Provisioner):
         for node in all_nodes.split('\n'):
             if f'"{self.node_type}"' in node:
                 break
+        else:
+            node = ''
         node = node.replace(self.node_type, '')
         node_info = node.split(',')
         for i in node_info:
@@ -181,6 +183,8 @@ class ChameleonProvisioner(Provisioner):
             cmd += ['--tag', 'gpu']
         print(cmd)
         image, _ = self.capture_shell(cmd)
+        if image is None or image == '':
+            print_and_exit(f'Valid image not found for node of type {self.node_info['cpu']}' + ('with GPU' if self.node_info['gpu'] else ''))
         self.set('image', image)
     
     def create_instance(self):
@@ -227,7 +231,7 @@ class ChameleonProvisioner(Provisioner):
         self.get_ip_reservation_id()
         cmd = ['openstack'] + subcommand_map['ip'] + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', 'Floating IP Address', '-f', 'value']
         print(cmd)
-        ip_addresses = self.capture_shell(cmd)
+        ip_addresses, _ = self.capture_shell(cmd)
         self.set('ip_addresses', ip_addresses)
     
     def associate_ip(self):
@@ -243,8 +247,10 @@ class ChameleonProvisioner(Provisioner):
         check_cmd = ['openstack', 'server', 'show', self.server_name, '-c', 'addresses', '-f', 'value']
         #print(f'{check_cmd=}')
         #print(self.capture_shell(check_cmd))
-        while self.capture_shell(check_cmd) == '':
+        address = ''
+        while address == '':
             time.sleep(3)
+            address, _ = self.capture_shell(check_cmd)
     
     def allocate_ip(self):
         cmd = subcommand_map['lease'] + ['create', '--reservation', f'resource_type=virtual:floatingip,network_id={self.public_network_id},amount=1', self.ip_lease_name]
