@@ -18,6 +18,7 @@ jobs:
     steps:
       - name: Set VER
         run: |
+          ls
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             #VER=${{ inputs.release_tag }}
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
