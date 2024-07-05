@@ -1,0 +1,26 @@
+TACC:
+  Name: myusername
+  Path: /path/to/ssh/key
+  Hosts:
+    x86:
+      - IP: ip_address
+        Username: my_target_username
+    RPi:
+      - IP: pi1.ip_address
+        Username: my_target_username2
+      - IP: pi2.ip_address
+        Username: my_target_username3
+
+CHI@TACC:
+  Name: macbook
+  Path: /path/to/chi/ssh/key
+  ID: MY_APP_KEY_ID
+  Secret: MY_APP_SECRET
+  Hosts:
+    "*":
+      - IP: "*"
+        Username: cc
+
+Users:
+  - authorized_user1
+  - authorized_user2
