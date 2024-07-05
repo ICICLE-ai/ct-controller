@@ -184,7 +184,7 @@ class ChameleonProvisioner(Provisioner):
         print(cmd)
         image, _ = self.capture_shell(cmd)
         if image is None or image == '':
-            print_and_exit(f'Valid image not found for node of type {self.node_info['cpu']}' + ('with GPU' if self.node_info['gpu'] else ''))
+            print_and_exit(f'Valid image not found for node of type {self.node_info["cpu"]}' + ('with GPU' if self.node_info["gpu"] else ''))
         self.set('image', image)
     
     def create_instance(self):

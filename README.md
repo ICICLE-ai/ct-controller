@@ -17,7 +17,7 @@ cd ctcontroller
 `ctcontroller` can also be installed via pip with:
 
 ```
-pip install ctcontroller
+pip install https://github.com/ICICLE-ai/ct-controller@v${VER}
 ```
 
 

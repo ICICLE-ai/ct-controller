@@ -1,7 +1,15 @@
 #!/usr/env/python3
+"""
+This package exposes: 
+(1) run: a command to run the ctcontroller workflow
+(2) VERSION: the version of the ctcontroller package
+"""
+
+from .ct_main import main
 
 VERSION = "0.1"
 
 def run():
-    from .ct_main import main
+    """Calls the ctcontroller main function"""
+
     main()

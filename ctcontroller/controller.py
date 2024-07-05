@@ -10,7 +10,8 @@ class Controller():
             'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
             'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
             'node_type':         {'required': True,  'category': ['provisioner'], 'type': str},
-            'gpu':               {'required': True,  'category': ['provisioner', 'application'], 'type': bool},
+            'gpu':               {'required': True,  'category': ['provisioner',
+                                                                  'application'], 'type': bool},
             'model':             {'required': False, 'category': ['application'], 'type': str},
             'input':             {'required': False, 'category': ['application'], 'type': str},
             'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
@@ -28,22 +29,23 @@ class Controller():
         controller_config = {}
 
         # iterate over variables and copy values into config dictionaries
-        for k, v in self.vars.items():
-            var = f'CT_CONTROLLER_{k.upper()}'
+        for key, val in self.vars.items():
+            var = f'CT_CONTROLLER_{key.upper()}'
             found = False
             if var in os.environ:
-                val = self.type_conversion(k, os.environ[var], v['type'])
+                typed_val = self.type_conversion(key, os.environ[var], val['type'])
                 found = True
-                if 'provisioner' in v['category']:
-                    provisioner_config[k] = val
-                if 'application' in v['category']:
-                    application_config[k] = val
-                if 'controller' in v['category']:
-                    controller_config[k] = val
+                if 'provisioner' in val['category']:
+                    provisioner_config[key] = typed_val
+                if 'application' in val['category']:
+                    application_config[key] = typed_val
+                if 'controller' in val['category']:
+                    controller_config[key] = typed_val
 
             # Check for any required variables that have not been defined
-            if v['required'] == True and found == False:
-                print_and_exit(f'Required variable CT_CONTROLLER_{k.upper()} required by ctcontroller not defined in your environment.')
+            if val['required'] and not found:
+                print_and_exit(f'Required variable CT_CONTROLLER_{key.upper()} \
+                               required by ctcontroller not defined in your environment.')
 
         # Get the requester's username
         if '_tapisJobOwner' in os.environ:
@@ -59,28 +61,28 @@ class Controller():
 
         self.set_log_dir()
 
-    def type_conversion(self, key: str, val: str, type):
-        if type == bool:
+    def type_conversion(self, key: str, val: str, target_type):
+        if target_type == bool:
             if val.lower() in ['1', 't', 'true', 'yes', 'y']:
                 new = True
             elif val.lower() in ['0', 'f', 'false', 'no', 'n']:
                 new = False
             else:
-                raise print_and_exit(f'{key}={val} is not valid. {key} must be a boolean.')
-        elif type == int:
+                print_and_exit(f'{key}={val} is not valid. {key} must be a boolean.')
+        elif target_type == int:
             if val.isdigit():
                 new = int(val)
             else:
-                raise print_and_exit(f'{key}={val} is not valid. {key} must be integer.')
-        elif type == str:
+                print_and_exit(f'{key}={val} is not valid. {key} must be integer.')
+        elif target_type == str:
             new = val
-        elif type == 'json':
+        elif target_type == 'json':
             try:
                 new = json.loads(val)
             except ValueError:
                 print_and_exit(f'Invalid json passed to {key}:\n{val}')
         else:
-            raise Exception(f'Invalid type {type} for variable {key}.')
+            print_and_exit(f'Invalid type {target_type} for variable {key}.')
         return new
 
     # Determine the log directory and check that it is writable
@@ -92,4 +94,4 @@ class Controller():
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:
-            print_and_exit(f'Log directory {self.log_dir} is not writable.')
+            print_and_exit(f'Log directory {log_dir} is not writable.')
