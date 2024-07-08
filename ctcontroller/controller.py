@@ -1,9 +1,18 @@
+"""
+Contains the controller class definition used to manage the user inputs and provide them
+to the provisioner and application manager.
+"""
 import os
 import pwd
 import json
 from .error import print_and_exit
 
 class Controller():
+    """
+    A class that takes user inputs to set appropriate configuration parameters to
+    provision and run the camera traps application.
+    """
+
     def __init__(self):
         # List of possible environment variables to be used by the controller
         self.vars = {
@@ -62,6 +71,16 @@ class Controller():
         self.set_log_dir()
 
     def type_conversion(self, key: str, val: str, target_type):
+        """
+        Converts the value of a key obtained from the environment into the appropriate type.
+        Some basic error checking is done to ensure that a valid type is passed and the
+        input string can be converted to that type.
+
+        Parameters:
+            key (str): the key whose value is being converted
+            val (str): the value that is being converted
+            target_type (type or str): the type that the value is being converted to
+        """
         if target_type == bool:
             if val.lower() in ['1', 't', 'true', 'yes', 'y']:
                 new = True
@@ -87,6 +106,13 @@ class Controller():
 
     # Determine the log directory and check that it is writable
     def set_log_dir(self):
+        """
+        If a log directory was provided by the user, use it. Otherwise, use a
+        subdirectory called output.
+        It checks if the selected log directory is writable by the application
+        and exits if it is not.
+        """
+
         if 'root' in self.controller_config:
             log_dir = self.controller_config['output_dir']
         else:
