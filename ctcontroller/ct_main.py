@@ -1,6 +1,6 @@
 """
 The main module of the ctcontroller package.
-It contains the main function that runs the entire provision-run-shutdown-deprovision workload.
+It contains the main function that runs the entire provision-run-shutdown-deprovision workflow.
 """
 from .camera_traps import CameraTrapsManager as AppManager
 from .controller import Controller
