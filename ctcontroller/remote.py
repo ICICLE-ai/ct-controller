@@ -1,20 +1,20 @@
-import paramiko
 import os
+import time
+from threading import Thread
+import paramiko
 
 AuthenticationException = paramiko.ssh_exception.AuthenticationException
 
 class RemoteRunner():
     def __init__(self, ip_address: str, username: str, pkey_path: str, num_retries=30):
-        import time
         self.client = None
         self.sftp = None
-        #print(f"Connecting to server: ssh -i {pkey_path} {username}@{ip_address}")
         pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
         client.set_missing_host_key_policy(policy)
-    
-        for i in range(num_retries):
+
+        for _itr in range(num_retries):
             try:
                 client.connect(ip_address, username=username, pkey=pkey)
                 break
@@ -25,7 +25,7 @@ class RemoteRunner():
         self.client = client
         self.sftp = self.client.open_sftp()
         self.set_home_dir()
-    
+
     def set_home_dir(self):
         _, stdout, _ = self.client.exec_command('pwd -P')
         self.home_dir = stdout.readlines()[0].strip()
@@ -40,11 +40,11 @@ class RemoteRunner():
             file.write(line)
 
     def tracked_run(self, cmd: str, outlog, errlog):
-        print(f'Running "{cmd}" on remote server "{self.ip_address}".\nLogging stdout=>{outlog} and stderr=>{errlog}')
-        from threading import Thread
+        print((f'Running "{cmd}" on remote server "{self.ip_address}".\n'
+              f'Logging stdout=>{outlog} and stderr=>{errlog}'))
         _, stdout, stderr = self.client.exec_command(cmd, get_pty=True)
-        outf = open(outlog, 'a+')
-        errf = open(errlog, 'a+')
+        outf = open(outlog, 'a+', encoding='utf-8')
+        errf = open(errlog, 'a+', encoding='utf-8')
         out_thread = Thread(target=self.log_to_file, args=(outf, stdout))
         err_thread = Thread(target=self.log_to_file, args=(errf, stderr))
 
@@ -58,8 +58,8 @@ class RemoteRunner():
         errf.close()
 
     def create_file(self, fpath: str):
-        f = self.sftp.open(fpath, 'w')
-        f.close()
+        fil = self.sftp.open(fpath, 'w')
+        fil.close()
 
     def delete_file(self, fpath: str):
         self.sftp.remove(fpath)
@@ -73,8 +73,10 @@ class RemoteRunner():
         return exists
 
     def __del__(self):
-        if self.sftp: self.sftp.close()
-        if self.client: self.client.close()
+        if self.sftp:
+            self.sftp.close()
+        if self.client:
+            self.client.close()
 
     def copy_dir(self, src, target):
         print(f'Copying from {src} on local system to {target} on remote')
