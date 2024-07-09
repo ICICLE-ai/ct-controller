@@ -1,3 +1,5 @@
+"""Contains the ChameleonProvisioner for provisioning hardware on Chameleon Cloud."""
+
 from re import search
 import os
 import time
@@ -16,8 +18,51 @@ subcommand_map = {
 }
 
 class ChameleonProvisioner(Provisioner):
+    """
+    A subclass of the Provisioner class to handle the provisioning and deprovisioning
+    of hardware on Chameleon Cloud.
+
+    Attributes:
+
+        lease_name (str): 
+        ip_lease_name (str): 
+        server_name (str): 
+        network_id (str): 
+        public_network_id (str): 
+        lease_id (str): 
+        ip_lease_id (str): 
+        reservation_id (str): 
+        ip_reservation_id (str): 
+        image (str): 
+        server_id (str): 
+        remote_id (str): 
+        cpu_arch (str): 
+        node_info (dict): 
+
+    Methods:
+        lookup_auth(config_path):
+        get_cpu_arch():
+        run_check(check_type):
+        available_hosts(): 
+        reserve_lease():
+        check_lease_ready(lease_name, lease_id): 
+        check_server_ready(server_name): 
+        reserve_ip():
+        get_reservation_id():
+        select_image():
+        create_instance():
+        delete_server():
+        delete_leases():
+        get_ip_reservation_id():
+        get_ip_addresses():
+        associate_ip():
+        allocate_ip():
+        provision_instance():
+        shutdown_instance():
+    
+    """
+
     def __init__(self, cfg):
-        self.site = cfg['target_site']
         cfg['user_name_required'] = False
         super().__init__(cfg)
 
@@ -59,8 +104,10 @@ class ChameleonProvisioner(Provisioner):
         self.reservation_id = None
         self.ip_reservation_id = None
         self.image = None
+        self.server_id = None
         self.remote_id = 'cc'
         self.cpu_arch = self.get_cpu_arch()
+        self.node_info = {'cpu': self.cpu_arch, 'gpu': self.gpu, 'node_type': self.node_type}
 
     def lookup_auth(self, config_path):
         if not os.path.exists(config_path):
@@ -89,10 +136,11 @@ class ChameleonProvisioner(Provisioner):
         for i in node_info:
             arch  = i.strip("\"")
             if arch != '':
-                return arch
-        #else platform == '' and arch == ''
-        print_and_exit(f'Cannot determine CPU architecture of specified \
-                       node type {self.node_type}')
+                break
+        else: #arch == ''
+            print_and_exit(f'Cannot determine CPU architecture of specified \
+                           node type {self.node_type}')
+        return arch
 
 
     def run_check(self, check_type=''):
@@ -112,8 +160,8 @@ class ChameleonProvisioner(Provisioner):
         out, _ = self.capture_shell(cmd)
         return out
 
-    def get_node_type(self, cpu, gpu):
-        pass
+    #def get_node_type(self, cpu, gpu):
+    #    pass
 
     def reserve_lease(self):
         print('Reserving lease for physical nodes')
@@ -127,35 +175,41 @@ class ChameleonProvisioner(Provisioner):
         lease_id = lease_out.split('\n')[1]
         self.lease_id = lease_id
 
-    def check_lease_ready(self, lease_name, lease_id):
+    def check_lease_ready(self, lease_name, lease_id) -> bool:
         cmd = ['openstack', 'reservation', 'lease', 'show', lease_id, '-c', 'status', '-f', 'value']
+        ready = False
         status, _ = self.capture_shell(cmd)
         if status == 'ACTIVE':
-            return True
-        if status == 'ERROR':
+            ready = True
+        elif status == 'ERROR':
             print_and_exit(f'The {lease_name} lease failed during provisioning.')
-        if status == 'TERMINATED':
+        elif status == 'TERMINATED':
             print_and_exit(f'The lease {lease_name} has been terminated.')
-        if status == 'STARTING':
-            return False
-        if status == 'PENDING':
-            return False
-        print_and_exit(f'Lease in invalid state: {status}')
+        elif status == 'STARTING':
+            ready = False
+        elif status == 'PENDING':
+            ready = False
+        else:
+            print_and_exit(f'Lease in invalid state: {status}')
+        return ready
 
-    def check_server_ready(self, server_name):
+    def check_server_ready(self, server_name) -> bool:
         cmd = ['openstack', 'server', 'show', server_name, '-c', 'status', '-f', 'value']
+        ready = False
         status, _ = self.capture_shell(cmd)
         if status == 'ACTIVE':
-            return True
-        if status == 'BUILD':
-            return False
-        if status == 'STARTING':
-            return False
-        if status == 'TERMINATED':
+            ready = True
+        elif status == 'BUILD':
+            ready = False
+        elif status == 'STARTING':
+            ready = False
+        elif status == 'TERMINATED':
             print_and_exit(f'Server {server_name} instance was terminated')
-        if status == 'ERROR':
+        elif status == 'ERROR':
             print_and_exit(f'Server {server_name} instance could not be created')
-        print_and_exit(f'Server {server_name} in invalid state {status}')
+        else:
+            print_and_exit(f'Server {server_name} in invalid state {status}')
+        return ready
 
     def reserve_ip(self):
         res = (f'resource_type=virtual:floatingip,network_id={self.public_network_id},'
@@ -195,7 +249,6 @@ class ChameleonProvisioner(Provisioner):
         self.image = image
 
     def create_instance(self):
-        import time
         # wait until reservations are ready
         print('Waiting for reservation leases to start', end='')
         while (not self.check_lease_ready(self.ip_lease_name, self.ip_lease_id) or
@@ -270,26 +323,13 @@ class ChameleonProvisioner(Provisioner):
         print(cmd)
         shell.main(cmd)
 
-    def set_node_info(self):
-        self.node_info = {'cpu': self.cpu_arch, 'gpu': self.gpu, 'node_type': self.node_type}
-
-    def check_connection(self):
-        remote_hostname = self.runner.run('hostname')
-        if remote_hostname == self.server_name:
-            print('Connected')
-            return True
-        print('Connection Failed')
-        return False
-
     def provision_instance(self):
-        self.set_node_info()
         self.select_image()
         self.reserve_lease()
         self.reserve_ip()
         self.create_instance()
         self.associate_ip()
         self.connect()
-        self.check_connection() # ssh into instance
 
     def shutdown_instance(self):
         self.delete_server()

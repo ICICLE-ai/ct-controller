@@ -8,8 +8,7 @@ CT_ROOT = '.ctcontroller'
 
 class Provisioner:
     def __init__(self, cfg):
-        if not hasattr(self, 'site'):
-            self.site = None
+        self.site = cfg['target_site']
         self.user = cfg['requesting_user']
         # If the SSH key and key name were provided, use them.
         # Else try to use a service account.
