@@ -1,9 +1,32 @@
+"""Contains the TACCProvisioner for provisioning bare-metal hardware at TACC."""
+
 import time
 from .error import print_and_exit
 from .provisioner import Provisioner
 from .remote import AuthenticationException
 
 class TACCProvisioner(Provisioner):
+    """
+    A subclass of the Provisioner class to handle the provisioning and deprovisioning
+    of bare-metail hardware at TACC.
+
+    Attributes:
+        site (str): 
+        use_service_acct (bool): 
+        lock_file (str): 
+        available_nodes (dict): 
+        site_config (dict): 
+        remote_id (): 
+
+    Methods:
+
+        get_remote_id(cfg):
+            Determine the username to be used when connecting to the provisioned hardware
+        reserve_node(node_type):
+        provision_instance():
+        shutdown_instance():
+    """
+
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
         self.site = cfg['target_site']
@@ -16,9 +39,9 @@ class TACCProvisioner(Provisioner):
 
     def get_remote_id(self, cfg):
         if self.use_service_acct:
-            self.set('remote_id', None)
+            self.remote_id = None
         elif 'target_user' in cfg:
-            self.set('remote_id', cfg['target_user'])
+            self.remote_id = cfg['target_user']
         else:
             print_and_exit('User id on remote server was not specified.')
 
@@ -42,8 +65,8 @@ class TACCProvisioner(Provisioner):
             if not runner.file_exists(self.lock_file):
                 runner.create_file(self.lock_file)
                 self.runner = runner
-                self.set('ip_addresses', node['IP'])
-                self.set('remote_id', node['Username'])
+                self.ip_addresses = node['IP']
+                self.remote_id = node['Username']
                 print(f'node {node["IP"]} available')
                 return True
             print(f'node {node} in use, going to next node...')
@@ -57,8 +80,5 @@ class TACCProvisioner(Provisioner):
             time.sleep(3)
         print('\n')
 
-    def release_node(self):
-        self.get_remote_runner().delete_file(self.lock_file)
-
     def shutdown_instance(self):
-        self.release_node()
+        self.get_remote_runner().delete_file(self.lock_file)
