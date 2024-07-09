@@ -8,36 +8,31 @@ from .remote import AuthenticationException
 class TACCProvisioner(Provisioner):
     """
     A subclass of the Provisioner class to handle the provisioning and deprovisioning
-    of bare-metail hardware at TACC.
+    of bare-metal hardware at TACC.
 
     Attributes:
-        site (str): 
-        use_service_acct (bool): 
-        lock_file (str): 
-        available_nodes (dict): 
-        site_config (dict): 
-        remote_id (): 
+        lock_file (str): name of the lock file used to reserve a node
+        available_nodes (dict): a dictionary of nodes accessible at the TACC site
+        remote_id (str): username to be used on the remote server
 
     Methods:
 
-        get_remote_id(cfg):
-            Determine the username to be used when connecting to the provisioned hardware
         reserve_node(node_type):
+            Checks if any of the nodes that match node_type are available.
         provision_instance():
+            Periodically checks until a compatible resource has become available
         shutdown_instance():
+            Deprovisions the node
     """
 
     def __init__(self, cfg):
         cfg['key_name'] = 'default'
-        self.site = cfg['target_site']
         cfg['user_name_required'] = True
         super().__init__(cfg)
 
-        self.get_remote_id(cfg)
         self.available_nodes = self.site_config['Hosts']
         self.lock_file = 'ctcontroller.lock'
 
-    def get_remote_id(self, cfg):
         if self.use_service_acct:
             self.remote_id = None
         elif 'target_user' in cfg:
@@ -45,7 +40,19 @@ class TACCProvisioner(Provisioner):
         else:
             print_and_exit('User id on remote server was not specified.')
 
-    def reserve_node(self, node_type):
+    def reserve_node(self, node_type) -> bool:
+        """
+        Loops over nodes at TACC that match the requested node type and reserves the
+        first node if available.
+
+            Parameters: 
+                node_type (dict): a dictionary describing the requested node type
+
+            Returns:
+                bool: True if an available node was reserved
+                      False if there were no available nodes to reserver
+        """
+
         available_nodes = self.available_nodes[node_type]
         if available_nodes == []:
             print_and_exit(f'No node of type {node_type} is available')
@@ -73,12 +80,16 @@ class TACCProvisioner(Provisioner):
             del runner
         return False
 
-    def provision_instance(self):
+    def provision_instance(self) -> None:
+        """Periodically checks for an available node and exits once it has been reserved."""
+
         print('Waiting for a node to be available')
         while not self.reserve_node(self.node_type):
             print('.', end='')
             time.sleep(3)
         print('\n')
 
-    def shutdown_instance(self):
+    def shutdown_instance(self) -> None:
+        """Deprovisions the node by deleting the lock file."""
+
         self.get_remote_runner().delete_file(self.lock_file)
