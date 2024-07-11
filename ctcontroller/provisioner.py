@@ -1,3 +1,4 @@
+"""Contains the base Provisioner class used to create site-specific provisioners."""
 import os
 from subprocess import run
 import yaml
@@ -7,6 +8,33 @@ from .error import print_and_exit
 CT_ROOT = '.ctcontroller'
 
 class Provisioner:
+    """
+    The base Provisioner class used to create site-specific provisioners.
+    Contains basic setup steps and subroutines necessary for any site provisioner.
+
+    Attributes:
+        site (str): 
+        user (str): 
+        private_key (str): 
+        key_name (str): 
+        use_service_acct (bool): 
+        ssh_key (dict): 
+        num_nodes (int): 
+        gpu (bool): 
+        runner (RemoteRunner): 
+        ip_addresses (str): 
+        device_id (str): 
+        site_config (str): 
+
+    Methods:
+        get_config(config_path):
+        lookup_auth(config_path): 
+        get(prop): 
+        capture_shell(cmd): 
+        get_remote_runner(ip_address, remote_id): 
+        connect(): 
+    """
+
     def __init__(self, cfg):
         self.site = cfg['target_site']
         self.user = cfg['requesting_user']
@@ -28,8 +56,17 @@ class Provisioner:
         self.gpu = cfg['gpu']
         self.runner = None
         self.ip_addresses = None
+        self.device_id = None
 
-    def get_config(self, config_path):
+    def get_config(self, config_path: str):
+        """
+        If the config file exists, load the site-specific configuration options into a dictionary.
+        If the config file does not exist, print an error message and exit.
+
+            Parameters:
+                config_path (str): the path to the config file.
+        """
+
         if not os.path.exists(config_path):
             print_and_exit('Config file not found')
         with open(config_path, 'r', encoding='utf-8') as fil:
@@ -37,6 +74,15 @@ class Provisioner:
         self.site_config = config[self.site]
 
     def lookup_auth(self, config_path: str):
+        """
+        Reads in the config file (if it exists).
+        If the requesting user is authorized, uses any service account specified in the
+        config file to sets the key name and private key.
+
+            Parameters:
+                config_path (str): the path to the config file.
+        """
+
         if not os.path.exists(config_path):
             print_and_exit('Config file not found')
         with open(config_path, 'r', encoding='utf-8') as fil:
@@ -55,9 +101,22 @@ class Provisioner:
         super().__setattr__(name, value)
 
     def get(self, prop: str):
+        """Returns the value of prop or None if it is not defined."""
         return getattr(self, prop, None)
 
     def capture_shell(self, cmd):
+        """
+        Runs a shell command and returns the stdout and stderr.
+        If the command prints anything to stderr then print it as a warning.
+
+            Parameters:
+                cmd (str or list): command to run on the command-line
+
+            Returns:
+                stdout: standard output from the command
+                stderr: standard error from the command    
+        """
+
         if isinstance(cmd, str):
             cmd = cmd.split(' ')
             cmdstr = cmd
@@ -73,11 +132,22 @@ class Provisioner:
         return out, err
 
     def get_remote_runner(self, ip_address=None, remote_id=None):
+        """
+        Initialize a RemoteRunner connected to the provisioned server at the specified ip_address
+        logged in with the specified username id.
+
+            Parameters:
+                ip_address (str): IP address of the server to connect
+                remote_id (str): username on the remote server
+            
+            Returns:
+                RemoteRunner:  runner connected to the specified remote server
+        """
         if ip_address is None:
             ip_address = self.ip_addresses
         if remote_id is None:
             remote_id = self.get('remote_id')
         return RemoteRunner(ip_address, remote_id, self.ssh_key['path'])
 
-    def connect(self):
-        self.runner = self.get_remote_runner()
+    #def connect(self):
+    #    self.runner = self.get_remote_runner()

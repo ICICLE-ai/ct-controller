@@ -74,6 +74,7 @@ class TACCProvisioner(Provisioner):
                 self.runner = runner
                 self.ip_addresses = node['IP']
                 self.remote_id = node['Username']
+                self.device_id = runner.run('hostname')
                 print(f'node {node["IP"]} available')
                 return True
             print(f'node {node} in use, going to next node...')

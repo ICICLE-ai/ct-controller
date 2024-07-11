@@ -77,6 +77,9 @@ class RemoteRunner():
 
             Parameters:
                 cmd (str): the comand to be run
+            
+            Returns:
+                str: the stdout from the execution of the command
         """
 
         print(f'Running "{cmd}" on remote server "{self.ip_address}"')
