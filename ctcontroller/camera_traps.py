@@ -102,6 +102,14 @@ class CameraTrapsManager():
         """)
         out = self.runner.run(install_cmd)
         print(out)
+        # Prune images/containers and pull the latest images
+        pull_cmd = dedent(f"""
+        cd {self.run_dir}
+        docker container prune -f
+        docker image prune -f
+        docker compose pull
+        """)
+        self.runner.run(pull_cmd)
 
     def remove_app(self):
         """Deletes the run directory"""
@@ -119,6 +127,7 @@ class CameraTrapsManager():
         # Run docker compose up to start camera traps code
         cmd = dedent(f"""
         cd {self.run_dir}
+        docker compose pull
         docker compose up
         """)
 
@@ -134,6 +143,8 @@ class CameraTrapsManager():
         cmd = dedent(f"""
         cd {self.run_dir}
         docker compose down
+        docker container prune -f
+        docker image prune -f
         """)
         out = self.runner.run(cmd)
         print(out)
