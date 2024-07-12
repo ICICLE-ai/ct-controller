@@ -6,6 +6,7 @@ import time
 import random
 import string
 import yaml
+import json
 import openstackclient.shell as shell
 from .provisioner import Provisioner
 from .error import print_and_exit
@@ -418,6 +419,16 @@ class ChameleonProvisioner(Provisioner):
             time.sleep(3)
             address, _ = self.capture_shell(check_cmd)
 
+    def set_device_id(self):
+        """Sets the device id of the provisioned node as an object attribute."""
+
+        runner = self.get_remote_runner()
+        node_id = runner.run("curl 169.254.169.254/openstack/latest/meta_data.json \
+                             | jq '.chameleon.node'")
+        cmd = ['openstack', 'reservation', 'host', 'show', node_id, '-c', 'node_name', '-f', 'value']
+        device_id, _ = self.capture_shell(cmd)
+        self.device_id = device_id
+
     def provision_instance(self):
         """
         Initializes the instance by reserving the hardware and floating IP, selecting a
@@ -428,6 +439,7 @@ class ChameleonProvisioner(Provisioner):
         self.reserve_ip()
         self.create_instance()
         self.associate_ip()
+        self.set_device_id()
         #self.connect()
 
     def shutdown_instance(self):
