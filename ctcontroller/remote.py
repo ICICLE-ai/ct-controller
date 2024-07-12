@@ -46,7 +46,7 @@ class RemoteRunner():
             Creates a directory at the specified path on the remote server.
     """
 
-    def __init__(self, ip_address: str, username: str, pkey_path: str, num_retries=30, device_id=None):
+    def __init__(self, ip_address: str, username: str, pkey_path: str, device_id=None, num_retries=30):
         pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
