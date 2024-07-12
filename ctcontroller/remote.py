@@ -19,6 +19,7 @@ class RemoteRunner():
         sftp: the sftp connection to the remote server
         ip_address: the ip address of the remote server
         home_dir: the path to the home directory on the remote server
+        device_id: a unique device_id for the remote server
 
     Methods:
         run(cmd):
@@ -45,7 +46,7 @@ class RemoteRunner():
             Creates a directory at the specified path on the remote server.
     """
 
-    def __init__(self, ip_address: str, username: str, pkey_path: str, num_retries=30):
+    def __init__(self, ip_address: str, username: str, pkey_path: str, num_retries=30, device_id=None):
         pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
@@ -64,6 +65,10 @@ class RemoteRunner():
 
         _, pwdout, _ = self.client.exec_command('pwd -P')
         self.home_dir = pwdout.readlines()[0].strip()
+        if device_id:
+            self.device_id = device_id
+        else:
+            self.device_id = self.run('hostname')
 
     def __del__(self):
         if self.sftp:

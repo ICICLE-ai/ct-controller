@@ -147,7 +147,7 @@ class Provisioner:
             ip_address = self.ip_addresses
         if remote_id is None:
             remote_id = self.get('remote_id')
-        return RemoteRunner(ip_address, remote_id, self.ssh_key['path'])
+        return RemoteRunner(ip_address, remote_id, self.ssh_key['path'], self.device_id)
 
     #def connect(self):
     #    self.runner = self.get_remote_runner()

@@ -66,6 +66,7 @@ class CameraTrapsManager():
         with open('ct_controller.yml', 'w', encoding='utf-8') as fil:
             relpath = os.path.relpath(self.run_dir, rmt_pth)
             fil.write(f'install_dir: {relpath}\n')
+            fil.write(f'device_id: {self.runner.device_id}')
             if self.version:
                 fil.write(f'ct_version: {self.version}\n')
             if self.gpu:
