@@ -4,6 +4,8 @@ a provisioned remote server where the application will be run.
 """
 import os
 import time
+import stat
+from pathlib import Path
 from threading import Thread
 from typing import TextIO
 import paramiko
@@ -172,7 +174,7 @@ class RemoteRunner():
             exists = False
         return exists
 
-    def copy_dir(self, src, target):
+    def copy_dir(self, src: str, target: str):
         """
         Recursively copies a directory from the local machine to the remote server.
 
@@ -202,6 +204,28 @@ class RemoteRunner():
         """
 
         self.sftp.put(src, target)
+
+    def get(self, src: str, target: str) -> None:
+        """
+        Copies a remote file or directory from the remote server to the local machine.
+
+            Parameters:
+                src (str): path to the source file/directory on the remote server
+                target (str): path to the target file/directory on the local server
+        """
+
+        # check if src is a file or directory
+        targpath = f'{target}/{os.path.basename(src)}'
+        st = self.sftp.stat(src)
+
+        if stat.S_ISDIR(st.st_mode):
+            print(f'{src} is a directory. Creating it on the local machine {targpath} and copying contents')
+            Path(targpath).mkdir(parents=True, exist_ok=True)
+            for fil in self.sftp.listdir(src):
+                self.get(f'{src}/{fil}', targpath)
+        else: # src is a file
+           print(f'Copying {src} to {targpath}')
+           self.sftp.get(src, targpath)
 
     def mkdir(self, pth: str):
         """

@@ -152,6 +152,10 @@ class CameraTrapsManager():
         out = self.runner.run(cmd)
         print(out)
 
+
+    def copy_results(self):
+        self.runner.get(self.run_dir, self.log_dir)
+
     def run_job(self):
         """Setup the remote run directory and launch camera traps"""
 
@@ -162,4 +166,5 @@ class CameraTrapsManager():
         """Shutdown the camera traps container and cleanup the run directory"""
 
         self.docker_compose_down()
+        self.copy_results()
         self.remove_app()
