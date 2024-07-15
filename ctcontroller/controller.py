@@ -113,7 +113,7 @@ class Controller():
         and exits if it is not.
         """
 
-        if 'root' in self.controller_config:
+        if 'output_dir' in self.controller_config:
             log_dir = self.controller_config['output_dir']
         else:
             log_dir = './output'
