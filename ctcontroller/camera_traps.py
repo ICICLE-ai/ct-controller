@@ -53,7 +53,7 @@ class CameraTrapsManager():
         self.log_dir = log_dir
         self.run_dir = None
 
-        latest_version = self.runner.run("""curl  "https://api.github.com/repos/tapis-project/camera-traps/tags" | jq -r '.[0].name'""")
+        latest_version = self.runner.run("""curl -s  "https://api.github.com/repos/tapis-project/camera-traps/tags" | jq -r '.[0].name'""")
         self.version = cfg.get('ct_version', latest_version)
         self.gpu = cfg.get('gpu')
         self.model = cfg.get('model')
