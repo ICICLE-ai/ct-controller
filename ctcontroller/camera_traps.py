@@ -53,7 +53,7 @@ class CameraTrapsManager():
         self.log_dir = log_dir
         self.run_dir = None
 
-        self.version = cfg.get('ct_version')
+        self.version = cfg.get('ct_version', 'latest')
         self.gpu = cfg.get('gpu')
         self.model = cfg.get('model')
         self.input = cfg.get('input')
