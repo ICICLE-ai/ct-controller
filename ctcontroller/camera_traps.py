@@ -63,7 +63,7 @@ class CameraTrapsManager():
         """Generates a config file and copies it to the remote node that will run camera traps"""
 
         rmt_pth = self.runner.home_dir
-        with open('ct_controller.yml', 'w', encoding='utf-8') as fil:
+        with open(f'{self.log_dir}/ct_controller.yml', 'w', encoding='utf-8') as fil:
             relpath = os.path.relpath(self.run_dir, rmt_pth)
             fil.write(f'install_dir: {relpath}\n')
             fil.write(f'device_id: {self.runner.device_id}\n')
@@ -78,7 +78,7 @@ class CameraTrapsManager():
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')
-        self.runner.copy_file('ct_controller.yml', f'{rmt_pth}/ct_controller.yml')
+        self.runner.copy_file(f'{self.log_dir}/ct_controller.yml', f'{rmt_pth}/ct_controller.yml')
 
 
     def setup_app(self):
