@@ -119,9 +119,10 @@ class ChameleonProvisioner(Provisioner):
             raise ProvisionException('Config file not found')
         with open(config_path, 'r', encoding='utf-8') as fil:
             auth = yaml.safe_load(fil)
-        if self.user not in auth['Users']:
+        if ('Users' in auth and self.user not in auth['Users']
+            and auth['Settings']['AuthenticateUsers']):
             raise ProvisionException(f'{self.user} does not have appropriate permissions \
-                           to launch with a service account.')
+                                     to launch with a service account.')
         self.key_name = auth[self.site]['Name']
         self.private_key = auth[self.site]['Path']
         os.environ['OS_APPLICATION_CREDENTIAL_ID'] = auth[self.site]['ID']
@@ -179,12 +180,15 @@ class ChameleonProvisioner(Provisioner):
         """
 
         cmd = ['openstack', 'reservation', 'host', 'list',
+               '--quote', 'none',
+               '-f', 'csv',
                '-c', 'node_type',
                '-c', 'gpu.gpu',
+               '-c', 'gpu.gpu_model',
                '-c', 'architecture.platform_type',
                '-c', 'processor.other_description']
         out, _ = self.capture_shell(cmd)
-        return out
+        return out.split('\n')
 
     #def get_node_type(self, cpu, gpu):
     #    pass
@@ -310,12 +314,15 @@ class ChameleonProvisioner(Provisioner):
         an error message and exits.
         """
 
+        self.set_gpu_arch()
         # get available images
         cmd = ['openstack', 'image', 'list', '-c', 'Name', '-f', 'value', '--tag', 'ct_edge']
         if 'cpu' in self.node_info:
             cmd += ['--tag', self.node_info['cpu']]
         if 'gpu' in self.node_info and self.node_info['gpu']:
             cmd += ['--tag', 'gpu']
+            if self.node_info['gpu_arch'] != '':
+                cmd += ['--tag', self.node_info['gpu_arch'].lower()]
         print(cmd)
         image, _ = self.capture_shell(cmd)
         if image is None or image == '':
@@ -423,6 +430,17 @@ class ChameleonProvisioner(Provisioner):
         cmd = ['openstack', 'reservation', 'host', 'show', node_id, '-c', 'node_name', '-f', 'value']
         device_id, _ = self.capture_shell(cmd)
         self.device_id = device_id
+
+    def set_gpu_arch(self):
+        self.node_info['gpu_arch'] = ''
+        if self.node_info['gpu']:
+            all_hosts = self.available_hosts()
+            model_index = next((i for i, s in enumerate(all_hosts[0]) if 'gpu.gpu_model' in s), -1)
+            for host_info in all_hosts:
+                if self.node_info['node_type'] in host_info:
+                    gpu_arch = host_info.split(',')[model_index]
+                    self.node_info['gpu_arch'] = gpu_arch
+                    break
 
     def provision_instance(self):
         """
