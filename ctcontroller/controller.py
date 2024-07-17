@@ -4,8 +4,10 @@ to the provisioner and application manager.
 """
 import os
 import pwd
+import random
+import string
 import json
-from .error import print_and_exit
+from .error import ControllerException
 
 class Controller():
     """
@@ -53,21 +55,17 @@ class Controller():
 
             # Check for any required variables that have not been defined
             if val['required'] and not found:
-                print_and_exit(f'Required variable CT_CONTROLLER_{key.upper()} \
+                raise ControllerException(f'Required variable CT_CONTROLLER_{key.upper()} \
                                required by ctcontroller not defined in your environment.')
 
-        # Get the requester's username
-        if '_tapisJobOwner' in os.environ:
-            self.tapis = True
-            provisioner_config['requesting_user'] = os.environ['_tapisJobOwner']
-        else:
-            self.tapis = False
-            provisioner_config['requesting_user'] = pwd.getpwuid(os.getuid())[0]
 
         self.provisioner_config = provisioner_config
         self.application_config = application_config
         self.controller_config  = controller_config
 
+        self.check_tapis()
+        self.set_user()
+        self.set_job_id()
         self.set_log_dir()
 
     def type_conversion(self, key: str, val: str, target_type):
@@ -87,22 +85,57 @@ class Controller():
             elif val.lower() in ['0', 'f', 'false', 'no', 'n']:
                 new = False
             else:
-                print_and_exit(f'{key}={val} is not valid. {key} must be a boolean.')
+                raise ControllerException(f'{key}={val} is not valid. {key} must be a boolean.')
         elif target_type == int:
             if val.isdigit():
                 new = int(val)
             else:
-                print_and_exit(f'{key}={val} is not valid. {key} must be integer.')
+                raise ControllerException(f'{key}={val} is not valid. {key} must be integer.')
         elif target_type == str:
             new = val
         elif target_type == 'json':
             try:
                 new = json.loads(val)
             except ValueError:
-                print_and_exit(f'Invalid json passed to {key}:\n{val}')
+                raise ControllerException(f'Invalid json passed to {key}:\n{val}')
         else:
-            print_and_exit(f'Invalid type {target_type} for variable {key}.')
+            raise ControllerException(f'Invalid type {target_type} for variable {key}.')
         return new
+
+    def check_tapis(self):
+        """Checks if this application was launched as a Tapis job and sets the tapis parameter."""
+
+        if '_tapisJobOwner' in os.environ:
+            self.tapis = True
+        else:
+            self.tapis = False
+
+    def set_user(self):
+        """
+        Set the requesting user as a provisioner and application config parameters.
+        If using Tapis, use _tapisJobOwner. Else, use the username running this application.
+        """
+
+        if self.tapis:
+            requesting_user = os.environ['_tapisJobOwner']
+        else:
+            requesting_user = pwd.getpwuid(os.getuid())[0]
+        self.provisioner_config['requesting_user'] = requesting_user
+        self.application_config['requesting_user'] = requesting_user
+
+    def set_job_id(self):
+        """
+        Sets the job id of this run. If using Tapis, use _tapisJobUUID.
+        Else, set to a random string if not provided as an environment variable already.
+        """
+
+        if self.tapis:
+            self.provisioner_config['job_id'] = os.environ('_tapisJobUUID')
+            self.application_config['job_id'] = os.environ('_tapisJobUUID')
+        elif 'job_id' not in self.provisioner_config:
+            job_id = ''.join(random.choices(string.ascii_letters, k=7))
+            self.provisioner_config['job_id'] = job_id
+            self.application_config['job_id'] = job_id
 
     # Determine the log directory and check that it is writable
     def set_log_dir(self):
@@ -120,4 +153,4 @@ class Controller():
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:
-            print_and_exit(f'Log directory {log_dir} is not writable.')
+            raise ControllerException(f'Log directory {log_dir} is not writable.')

@@ -4,6 +4,7 @@ It contains the main function that runs the entire provision-run-shutdown-deprov
 """
 from .camera_traps import CameraTrapsManager as AppManager
 from .controller import Controller
+from .error import ApplicationException
 
 def main():
     """
@@ -27,12 +28,18 @@ def main():
     provisioner = SiteProvisioner(controller.provisioner_config)
 
     provisioner.provision_instance()
-    ctmanager = AppManager(provisioner.get_remote_runner(),
-                           log_dir=controller.log_directory,
-                           cfg=controller.application_config)
-    ctmanager.run_job()
-    ctmanager.shutdown_job()
-    provisioner.shutdown_instance()
+    try:
+        ctmanager = AppManager(provisioner.get_remote_runner(),
+                               log_dir=controller.log_directory,
+                               cfg=controller.application_config)
+        ctmanager.run_job()
+        ctmanager.shutdown_job()
+    except ApplicationException as e:
+        ctmanager.shutdown_job()
+        provisioner.shutdown_instance()
+        raise e
+    else:
+        provisioner.shutdown_instance()
 
 if __name__ == '__main__':
     main()

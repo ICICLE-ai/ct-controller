@@ -1,7 +1,7 @@
 """Contains the TACCProvisioner for provisioning bare-metal hardware at TACC."""
 
 import time
-from .error import print_and_exit
+from .error import ProvisionException
 from .provisioner import Provisioner
 from .remote import AuthenticationException
 
@@ -38,7 +38,7 @@ class TACCProvisioner(Provisioner):
         elif 'target_user' in cfg:
             self.remote_id = cfg['target_user']
         else:
-            print_and_exit('User id on remote server was not specified.')
+            raise ProvisionException('User id on remote server was not specified.')
 
     def reserve_node(self, node_type) -> bool:
         """
@@ -55,7 +55,7 @@ class TACCProvisioner(Provisioner):
 
         available_nodes = self.available_nodes[node_type]
         if available_nodes == []:
-            print_and_exit(f'No node of type {node_type} is available')
+            raise ProvisionException(f'No node of type {node_type} is available')
         for node in self.available_nodes[node_type]:
             try:
                 if self.remote_id is not None:

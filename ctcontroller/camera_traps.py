@@ -5,12 +5,13 @@ a remote node
 
 import os
 from textwrap import dedent
+from .application_manager import ApplicationManager
 from .remote import RemoteRunner
-from .error import print_and_exit
+from .error import ApplicationException
 
 
 # Class to manage the camera traps application on a remote node
-class CameraTrapsManager():
+class CameraTrapsManager(ApplicationManager):
     """
     A class to manage the running of the Camera Traps application on a remote node.
     It generates the appropriate docker-compose.yml file based on configuration
@@ -49,16 +50,14 @@ class CameraTrapsManager():
                             Controller object
         """
 
-        self.runner = runner
-        self.log_dir = log_dir
-        self.run_dir = None
+        super().__init__(runner, log_dir, cfg)
 
         latest_version = self.runner.run("""curl -s  "https://api.github.com/repos/tapis-project/camera-traps/tags" | jq -r '.[0].name'""")
         self.version = cfg.get('ct_version', latest_version)
         self.gpu = cfg.get('gpu')
         self.model = cfg.get('model')
         self.input = cfg.get('input')
-        self.advanced = cfg.get('advanced_app_vars')
+        self.run_dir = None
 
     def generate_cfg_file(self):
         """Generates a config file and copies it to the remote node that will run camera traps"""
@@ -68,14 +67,16 @@ class CameraTrapsManager():
             relpath = os.path.relpath(self.run_dir, rmt_pth)
             fil.write(f'install_dir: {relpath}\n')
             fil.write(f'device_id: {self.runner.device_id}\n')
+            fil.write(f'user_id: {self.user_id}\n')
+            fil.write(f'experiment_id: {self.experiment_id}\n')
             if self.version:
                 fil.write(f'ct_version: {self.version}\n')
             if self.gpu:
                 fil.write(f'use_gpu_in_scoring: {self.gpu}\n')
             if self.model:
-                print_and_exit('Custom model not currently supported')
+                raise ApplicationException('Custom model not currently supported')
             if self.input:
-                print_and_exit('Custom input not currently supported')
+                raise ApplicationException('Custom input not currently supported')
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')

@@ -167,11 +167,13 @@ class RemoteRunner():
                 False if file does not exist
         """
 
+        #print(f'checking if file {fpath} exists on {self.ip_address}')
         try:
             self.sftp.stat(fpath)
             exists = True
         except IOError:
             exists = False
+        #print(f'returning {exists}')
         return exists
 
     def copy_dir(self, src: str, target: str):

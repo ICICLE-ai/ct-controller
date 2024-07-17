@@ -3,13 +3,10 @@
 from re import search
 import os
 import time
-import random
-import string
 import yaml
-import json
 import openstackclient.shell as shell
 from .provisioner import Provisioner
-from .error import print_and_exit
+from .error import ProvisionException
 
 subcommand_map = {
     'lease': ['reservation', 'lease'],
@@ -55,7 +52,7 @@ class ChameleonProvisioner(Provisioner):
         delete_server():
         delete_leases():
         get_ip_reservation_id():
-        get_ip_addresses():
+        set_ip_addresses():
         associate_ip():
         provision_instance():
         shutdown_instance():
@@ -65,7 +62,6 @@ class ChameleonProvisioner(Provisioner):
     def __init__(self, cfg):
         cfg['user_name_required'] = False
         super().__init__(cfg)
-
 
         subsite = self.site.split('@')[1].lower()
 
@@ -79,11 +75,10 @@ class ChameleonProvisioner(Provisioner):
         # ensure that app credentials are already defined in the environment
         if (os.environ.get('OS_APPLICATION_CREDENTIAL_ID') is None or
             os.environ.get('OS_APPLICATION_CREDENTIAL_SECRET') is None):
-            print_and_exit('Chameleon Application credentials must be specified in the environment')
+            raise ProvisionException('Chameleon Application credentials must be specified in the environment')
 
         # Configure lease and instance names
-        if 'job_id' not in cfg:
-            self.job_id = ''.join(random.choices(string.ascii_letters, k=7))
+        self.job_id = cfg['job_id']
         self.lease_name = self.job_id + '-lease'
         self.ip_lease_name = self.job_id + '-ip-lease'
         self.server_name = self.job_id + '-server'
@@ -121,11 +116,11 @@ class ChameleonProvisioner(Provisioner):
         """
 
         if not os.path.exists(config_path):
-            print_and_exit('Config file not found')
+            raise ProvisionException('Config file not found')
         with open(config_path, 'r', encoding='utf-8') as fil:
             auth = yaml.safe_load(fil)
         if self.user not in auth['Users']:
-            print_and_exit(f'{self.user} does not have appropriate permissions \
+            raise ProvisionException(f'{self.user} does not have appropriate permissions \
                            to launch with a service account.')
         self.key_name = auth[self.site]['Name']
         self.private_key = auth[self.site]['Path']
@@ -156,7 +151,7 @@ class ChameleonProvisioner(Provisioner):
             if arch != '':
                 break
         else: #arch == ''
-            print_and_exit(f'Cannot determine CPU architecture of specified \
+            raise ProvisionException(f'Cannot determine CPU architecture of specified \
                            node type {self.node_type}')
         return arch
 
@@ -172,7 +167,7 @@ class ChameleonProvisioner(Provisioner):
 
         cmd = subcommand_map.get(check_type)
         if cmd is None:
-            print_and_exit(f'"{check_type}" is not a valid input to the check \
+            raise ProvisionException(f'"{check_type}" is not a valid input to the check \
                            subcommand')
         cmd.append('list')
         shell.main(cmd)
@@ -230,15 +225,15 @@ class ChameleonProvisioner(Provisioner):
         if status == 'ACTIVE':
             ready = True
         elif status == 'ERROR':
-            print_and_exit(f'The {lease_name} lease failed during provisioning.')
+            raise ProvisionException(f'The {lease_name} lease failed during provisioning.')
         elif status == 'TERMINATED':
-            print_and_exit(f'The lease {lease_name} has been terminated.')
+            raise ProvisionException(f'The lease {lease_name} has been terminated.')
         elif status == 'STARTING':
             ready = False
         elif status == 'PENDING':
             ready = False
         else:
-            print_and_exit(f'Lease in invalid state: {status}')
+            raise ProvisionException(f'Lease in invalid state: {status}')
         return ready
 
     def check_server_ready(self, server_name) -> bool:
@@ -263,11 +258,11 @@ class ChameleonProvisioner(Provisioner):
         elif status == 'STARTING':
             ready = False
         elif status == 'TERMINATED':
-            print_and_exit(f'Server {server_name} instance was terminated')
+            raise ProvisionException(f'Server {server_name} instance was terminated')
         elif status == 'ERROR':
-            print_and_exit(f'Server {server_name} instance could not be created')
+            raise ProvisionException(f'Server {server_name} instance could not be created')
         else:
-            print_and_exit(f'Server {server_name} in invalid state {status}')
+            raise ProvisionException(f'Server {server_name} in invalid state {status}')
         return ready
 
     def reserve_ip(self):
@@ -285,8 +280,8 @@ class ChameleonProvisioner(Provisioner):
         print(f'Reserving lease for floating ip addresses\n{cmd}')
         lease_out, err = self.capture_shell(cmd)
         if 'ERROR: Not enough floating IPs available' in err:
-            self.shutdown_instance()
-            print_and_exit('Leases have been deleted. Try rerunning later.')
+            #self.shutdown_instance()
+            raise ProvisionException('Leases have been deleted. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.ip_lease_id = lease_id
 
@@ -324,7 +319,7 @@ class ChameleonProvisioner(Provisioner):
         print(cmd)
         image, _ = self.capture_shell(cmd)
         if image is None or image == '':
-            print_and_exit((f'Valid image not found for node of type {self.node_info["cpu"]}'
+            raise ProvisionException((f'Valid image not found for node of type {self.node_info["cpu"]}'
                             ('with GPU' if self.node_info["gpu"] else '')))
         self.image = image
 
@@ -355,7 +350,7 @@ class ChameleonProvisioner(Provisioner):
         server_id, _ = self.capture_shell(cmd)
         self.server_id = server_id
         # Set ip address for instance
-        self.get_ip_addresses()
+        self.set_ip_addresses()
 
     def delete_server(self):
         """Deletes the server."""
@@ -381,19 +376,20 @@ class ChameleonProvisioner(Provisioner):
         resid = match.groups()[0]
         self.ip_reservation_id = resid
 
-    def get_ip_addresses(self):
+    def set_ip_addresses(self):
         """
         Sets the IP address reservation by the reservation lease for floating IPs
         as an object attribute.
         """
 
-        self.get_ip_reservation_id()
-        cmd = ['openstack'] + subcommand_map['ip'] \
-            + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', \
-               'Floating IP Address', '-f', 'value']
-        print(cmd)
-        ip_addresses, _ = self.capture_shell(cmd)
-        self.ip_addresses = ip_addresses
+        if self.ip_addresses is None:
+            self.get_ip_reservation_id()
+            cmd = ['openstack'] + subcommand_map['ip'] \
+                + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', \
+                   'Floating IP Address', '-f', 'value']
+            print(cmd)
+            ip_addresses, _ = self.capture_shell(cmd)
+            self.ip_addresses = ip_addresses
 
     def associate_ip(self):
         """
@@ -412,8 +408,6 @@ class ChameleonProvisioner(Provisioner):
         shell.main(cmd)
         check_cmd = ['openstack', 'server', 'show', self.server_name, '-c', 'addresses', '-f', \
                      'value']
-        #print(f'{check_cmd=}')
-        #print(self.capture_shell(check_cmd))
         address = ''
         while address == '':
             time.sleep(3)
@@ -422,9 +416,10 @@ class ChameleonProvisioner(Provisioner):
     def set_device_id(self):
         """Sets the device id of the provisioned node as an object attribute."""
 
+        self.set_ip_addresses()
         runner = self.get_remote_runner()
-        node_id = runner.run("curl 169.254.169.254/openstack/latest/meta_data.json \
-                             | jq '.chameleon.node'")
+        node_id = runner.run("curl -s 169.254.169.254/openstack/latest/vendor_data2.json \
+                             | jq -M '.chameleon.node'").strip('"')
         cmd = ['openstack', 'reservation', 'host', 'show', node_id, '-c', 'node_name', '-f', 'value']
         device_id, _ = self.capture_shell(cmd)
         self.device_id = device_id
@@ -434,15 +429,20 @@ class ChameleonProvisioner(Provisioner):
         Initializes the instance by reserving the hardware and floating IP, selecting a
         compatible image, creating an image on the hardware, and associating the IP with it.
         """
-        self.select_image()
-        self.reserve_lease()
-        self.reserve_ip()
-        self.create_instance()
-        self.associate_ip()
-        self.set_device_id()
-        #self.connect()
+
+        try:
+            self.select_image()
+            self.reserve_lease()
+            self.reserve_ip()
+            self.create_instance()
+            self.associate_ip()
+            self.set_device_id()
+        except ProvisionException as e:
+            self.shutdown_instance()
+            raise e
 
     def shutdown_instance(self):
         """Shuts down the instance and deprovisions the hardware and IP leases."""
+
         self.delete_server()
         self.delete_leases()
