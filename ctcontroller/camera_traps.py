@@ -4,10 +4,11 @@ a remote node
 """
 
 import os
+import json
 from textwrap import dedent
 from .application_manager import ApplicationManager
 from .remote import RemoteRunner
-from .error import ApplicationException
+from .util import ApplicationException, capture_shell
 
 
 # Class to manage the camera traps application on a remote node
@@ -52,11 +53,13 @@ class CameraTrapsManager(ApplicationManager):
 
         super().__init__(runner, log_dir, cfg)
 
-        latest_version = self.runner.run("""curl -s  "https://api.github.com/repos/tapis-project/camera-traps/tags" | jq -r '.[0].name'""")
-        self.version = cfg.get('ct_version', latest_version)
+        out, _ = capture_shell("curl -s  https://api.github.com/repos/tapis-project/camera-traps/tags")
+        latest = json.loads(out)[0]['name']
+        self.version = cfg.get('ct_version', latest)
         self.gpu = cfg.get('gpu')
         self.model = cfg.get('model')
         self.input = cfg.get('input')
+        self.node_type = cfg.get('node_type')
         self.run_dir = None
 
     def generate_cfg_file(self):
@@ -80,6 +83,8 @@ class CameraTrapsManager(ApplicationManager):
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')
+            if self.node_type == 'Jetson':
+                fil.write('image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n')
         self.runner.copy_file(f'{self.log_dir}/ct_controller.yml', f'{rmt_pth}/ct_controller.yml')
 
 
@@ -155,17 +160,20 @@ class CameraTrapsManager(ApplicationManager):
 
 
     def copy_results(self):
-        self.runner.get(self.run_dir, self.log_dir)
+        try:
+            self.runner.get(self.run_dir, self.log_dir)
+        except FileNotFoundError:
+            raise ApplicationException(f'run directory {self.run_dir} could not be found on remote server {self.runner.ip_address}')
 
     def run_job(self):
         """Setup the remote run directory and launch camera traps"""
 
         self.setup_app()
         self.docker_compose_up()
+        self.copy_results()
 
     def shutdown_job(self):
         """Shutdown the camera traps container and cleanup the run directory"""
 
         self.docker_compose_down()
-        self.copy_results()
         self.remove_app()

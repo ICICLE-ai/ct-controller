@@ -221,12 +221,10 @@ class RemoteRunner():
         st = self.sftp.stat(src)
 
         if stat.S_ISDIR(st.st_mode):
-            print(f'{src} is a directory. Creating it on the local machine {targpath} and copying contents')
             Path(targpath).mkdir(parents=True, exist_ok=True)
             for fil in self.sftp.listdir(src):
                 self.get(f'{src}/{fil}', targpath)
         else: # src is a file
-           print(f'Copying {src} to {targpath}')
            self.sftp.get(src, targpath)
 
     def mkdir(self, pth: str):

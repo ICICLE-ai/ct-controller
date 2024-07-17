@@ -1,7 +1,7 @@
 """Contains the TACCProvisioner for provisioning bare-metal hardware at TACC."""
 
 import time
-from .error import ProvisionException
+from .util import ProvisionException
 from .provisioner import Provisioner
 from .remote import AuthenticationException
 

@@ -4,7 +4,7 @@ It contains the main function that runs the entire provision-run-shutdown-deprov
 """
 from .camera_traps import CameraTrapsManager as AppManager
 from .controller import Controller
-from .error import ApplicationException
+from .util import ApplicationException
 
 def main():
     """

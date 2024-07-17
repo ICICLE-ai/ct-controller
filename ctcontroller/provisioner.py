@@ -1,9 +1,8 @@
 """Contains the base Provisioner class used to create site-specific provisioners."""
 import os
-from subprocess import run
 import yaml
 from .remote import RemoteRunner
-from .error import ProvisionException
+from .util import ProvisionException
 
 CT_ROOT = '.ctcontroller'
 
@@ -30,7 +29,6 @@ class Provisioner:
         get_config(config_path):
         lookup_auth(config_path): 
         get(prop): 
-        capture_shell(cmd): 
         get_remote_runner(ip_address, remote_id): 
         connect(): 
     """
@@ -103,33 +101,6 @@ class Provisioner:
     def get(self, prop: str):
         """Returns the value of prop or None if it is not defined."""
         return getattr(self, prop, None)
-
-    def capture_shell(self, cmd):
-        """
-        Runs a shell command and returns the stdout and stderr.
-        If the command prints anything to stderr then print it as a warning.
-
-            Parameters:
-                cmd (str or list): command to run on the command-line
-
-            Returns:
-                stdout: standard output from the command
-                stderr: standard error from the command    
-        """
-
-        if isinstance(cmd, str):
-            cmd = cmd.split(' ')
-            cmdstr = cmd
-        elif isinstance(cmd, list):
-            cmdstr = ' '.join(cmd)
-        else:
-            raise ProvisionException(f'Invalid shell command: {cmd}')
-        proc = run(cmd, capture_output=True, check=False)
-        out = proc.stdout.decode('utf-8').strip()
-        err = proc.stderr.decode('utf-8').strip()
-        if err != '':
-            print(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\033[00m\n')
-        return out, err
 
     def get_remote_runner(self, ip_address=None, remote_id=None):
         """

@@ -7,7 +7,7 @@ import pwd
 import random
 import string
 import json
-from .error import ControllerException
+from .util import ControllerException
 
 class Controller():
     """
@@ -20,7 +20,8 @@ class Controller():
         self.vars = {
             'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
             'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
-            'node_type':         {'required': True,  'category': ['provisioner'], 'type': str},
+            'node_type':         {'required': True,  'category': ['provisioner',
+                                                                  'application'], 'type': str},
             'gpu':               {'required': True,  'category': ['provisioner',
                                                                   'application'], 'type': bool},
             'model':             {'required': False, 'category': ['application'], 'type': str},
