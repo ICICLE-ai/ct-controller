@@ -5,10 +5,13 @@ a provisioned remote server where the application will be run.
 import os
 import time
 import stat
+import logging
 from pathlib import Path
 from threading import Thread
 from typing import TextIO
 import paramiko
+
+LOGGER = logging.getLogger("CT Controller")
 
 AuthenticationException = paramiko.ssh_exception.AuthenticationException
 
@@ -59,7 +62,7 @@ class RemoteRunner():
                 client.connect(ip_address, username=username, pkey=pkey)
                 break
             except OSError:
-                #print('os error while trying to connect to {ip_address}')
+                LOGGER.warning(f'os error while trying to connect to {ip_address}')
                 time.sleep(10)
         self.ip_address = ip_address
         self.client = client
@@ -89,7 +92,7 @@ class RemoteRunner():
                 str: the stdout from the execution of the command
         """
 
-        print(f'Running "{cmd}" on remote server "{self.ip_address}"')
+        LOGGER.info(f'Running "{cmd}" on remote server "{self.ip_address}"')
         _stdin, stdout, _stderr = self.client.exec_command(cmd, get_pty=True)
         return stdout.read().decode('utf-8').strip()
 
@@ -117,7 +120,7 @@ class RemoteRunner():
                 errlog (str): local path to the stderr log file
         """
 
-        print((f'Running "{cmd}" on remote server "{self.ip_address}".\n'
+        LOGGER.info((f'Running "{cmd}" on remote server "{self.ip_address}".\n'
               f'Logging stdout=>{outlog} and stderr=>{errlog}'))
         _, stdout, stderr = self.client.exec_command(cmd, get_pty=True)
         outf = open(outlog, 'a+', encoding='utf-8')
@@ -167,13 +170,11 @@ class RemoteRunner():
                 False if file does not exist
         """
 
-        #print(f'checking if file {fpath} exists on {self.ip_address}')
         try:
             self.sftp.stat(fpath)
             exists = True
         except IOError:
             exists = False
-        #print(f'returning {exists}')
         return exists
 
     def copy_dir(self, src: str, target: str):
@@ -185,7 +186,7 @@ class RemoteRunner():
                 target (str): path to target directory on remote server
         """
 
-        print(f'Copying from {src} on local system to {target} on remote')
+        LOGGER.info(f'Copying from {src} on local system to {target} on remote')
 
         for path, _, files in os.walk(src):
             try:

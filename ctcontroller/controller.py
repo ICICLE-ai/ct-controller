@@ -6,8 +6,11 @@ import os
 import pwd
 import random
 import string
+import logging
 import json
-from .util import ControllerException
+from .util import ControllerException, setup_logger
+
+LOGGER = logging.getLogger("CT Controller")
 
 class Controller():
     """
@@ -68,6 +71,7 @@ class Controller():
         self.set_user()
         self.set_job_id()
         self.set_log_dir()
+        setup_logger(self.log_directory)
 
     def type_conversion(self, key: str, val: str, target_type):
         """

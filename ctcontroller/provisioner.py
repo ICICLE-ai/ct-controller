@@ -1,10 +1,12 @@
 """Contains the base Provisioner class used to create site-specific provisioners."""
 import os
 import yaml
+import logging
 from .remote import RemoteRunner
 from .util import ProvisionException
 
 CT_ROOT = '.ctcontroller'
+LOGGER = logging.getLogger("CT Controller")
 
 class Provisioner:
     """
@@ -45,7 +47,7 @@ class Provisioner:
             self.private_key = cfg['ssh_key']
             self.key_name = cfg['key_name']
             self.use_service_acct = False
-            print('Using user-provided credentials')
+            LOGGER.info('Using user-provided credentials')
         else:
             self.lookup_auth(cfg['config_path'])
         self.ssh_key = {'name': self.key_name, 'path': self.private_key}
@@ -89,13 +91,13 @@ class Provisioner:
             and auth['Settings']['AuthenticateUsers']):
             raise ProvisionException((f'{self.user} does not have appropriate permissions to launch '
                            'with a service account.'))
-        print('Using service account')
+        LOGGER.info('Using service account')
         self.key_name = auth[self.site]['Name']
         self.private_key = auth[self.site]['Path']
         self.use_service_acct = True
 
     def __setattr__(self, name: str, value) -> None:
-        print(f'setting {name} to {value}')
+        LOGGER.info(f'setting {name} to {value}')
         super().__setattr__(name, value)
 
     def get(self, prop: str):

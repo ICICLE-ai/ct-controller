@@ -4,11 +4,14 @@ a remote node
 """
 
 import os
+import logging
 import json
 from textwrap import dedent
 from .application_manager import ApplicationManager
 from .remote import RemoteRunner
 from .util import ApplicationException, capture_shell
+
+LOGGER = logging.getLogger("CT Controller")
 
 
 # Class to manage the camera traps application on a remote node
@@ -110,7 +113,7 @@ class CameraTrapsManager(ApplicationManager):
         rm ct_controller.yml
         """)
         out = self.runner.run(install_cmd)
-        print(out)
+        LOGGER.info(out)
         # Prune images/containers and pull the latest images
         pull_cmd = dedent(f"""
         cd {self.run_dir}
@@ -125,7 +128,7 @@ class CameraTrapsManager(ApplicationManager):
 
         cmd = f'rm -rf {self.run_dir}'
         out = self.runner.run(cmd)
-        print(out)
+        LOGGER.info(out)
 
     def docker_compose_up(self):
         """
@@ -156,14 +159,16 @@ class CameraTrapsManager(ApplicationManager):
         docker image prune -f
         """)
         out = self.runner.run(cmd)
-        print(out)
+        LOGGER.info(out)
 
 
     def copy_results(self):
         try:
             self.runner.get(self.run_dir, self.log_dir)
         except FileNotFoundError:
-            raise ApplicationException(f'run directory {self.run_dir} could not be found on remote server {self.runner.ip_address}')
+            raise ApplicationException(f'Run directory {self.run_dir} could not be found on remote server {self.runner.ip_address}')
+        except OSError:
+            raise ApplicationException(f'Copy of run directory {self.run_dir} from remote server {self.runner.ip_address} failed')
 
     def run_job(self):
         """Setup the remote run directory and launch camera traps"""

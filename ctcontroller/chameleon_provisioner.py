@@ -4,10 +4,12 @@ from re import search
 import os
 import time
 import yaml
+import logging
 import openstackclient.shell as shell
 from .provisioner import Provisioner
 from .util import ProvisionException, capture_shell
 
+LOGGER = logging.getLogger("CT Controller")
 subcommand_map = {
     'lease': ['reservation', 'lease'],
     'server': ['server'],
@@ -199,13 +201,13 @@ class ChameleonProvisioner(Provisioner):
         lease_id as an object attribute.
         """
 
-        print('Reserving lease for physical nodes')
+        LOGGER.info('Reserving lease for physical nodes')
         resource_properties = f'["==", "$node_type", "{self.node_type}"]'
         reservation = (f'min={self.num_nodes},max={self.num_nodes},'
                        f'resource_type=physical:host,resource_properties={resource_properties}')
         cmd = ['openstack'] + subcommand_map['lease'] + \
             ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
-        print(' '.join(cmd))
+        LOGGER.info(' '.join(cmd))
         lease_out, _ = capture_shell(cmd)
         lease_id = lease_out.split('\n')[1]
         self.lease_id = lease_id
@@ -281,7 +283,7 @@ class ChameleonProvisioner(Provisioner):
                f'amount={self.num_nodes}')
         cmd = ['openstack'] + subcommand_map['lease'] \
             + ['create', '--reservation', res, self.ip_lease_name, '-f', 'value', '-c', 'id']
-        print(f'Reserving lease for floating ip addresses\n{cmd}')
+        LOGGER.info(f'Reserving lease for floating ip addresses\n{cmd}')
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough floating IPs available' in err:
             #self.shutdown_instance()
@@ -323,7 +325,7 @@ class ChameleonProvisioner(Provisioner):
             cmd += ['--tag', 'gpu']
             if self.node_info['gpu_arch'] != '':
                 cmd += ['--tag', self.node_info['gpu_arch'].lower()]
-        print(cmd)
+        LOGGER.info(cmd)
         image, _ = capture_shell(cmd)
         if image is None or image == '':
             raise ProvisionException((f'Valid image not found for node of type {self.node_info["cpu"]}'
@@ -338,13 +340,12 @@ class ChameleonProvisioner(Provisioner):
         """
 
         # wait until reservations are ready
-        print('Waiting for reservation leases to start', end='')
+        LOGGER.info('Waiting for reservation leases to start')
         while (not self.check_lease_ready(self.ip_lease_name, self.ip_lease_id) or
                not self.check_lease_ready(self.lease_name, self.lease_id)):
-            print('.', end='')
+            LOGGER.info('.')
             time.sleep(3)
-        print('\n')
-        print('Creating instance on the lease')
+        LOGGER.info('Creating instance on the lease')
         cmd = ['openstack'] + subcommand_map['server']  \
                             + ['create', '--image', self.image,
                                '--network', self.network_id,
@@ -353,7 +354,7 @@ class ChameleonProvisioner(Provisioner):
                                '--hint', f'reservation={self.get_reservation_id()}',
                                '-c', 'id', '-f', 'value',
                                self.server_name]
-        print(cmd)
+        LOGGER.info(cmd)
         server_id, _ = capture_shell(cmd)
         self.server_id = server_id
         # Set ip address for instance
@@ -394,7 +395,7 @@ class ChameleonProvisioner(Provisioner):
             cmd = ['openstack'] + subcommand_map['ip'] \
                 + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', \
                    'Floating IP Address', '-f', 'value']
-            print(cmd)
+            LOGGER.info(cmd)
             ip_addresses, _ = capture_shell(cmd)
             self.ip_addresses = ip_addresses
 
@@ -404,12 +405,11 @@ class ChameleonProvisioner(Provisioner):
         with the server. Then waits for the association has completed before returning.
         """
 
-        print('Waiting for server to be ready', end='')
+        LOGGER.info('Waiting for server to be ready')
         while not self.check_server_ready(self.server_id):
-            print('.', end='')
+            LOGGER.info('.')
             time.sleep(3)
-        print('\n')
-        print("Associating floating IP address with instance")
+        LOGGER.info("Associating floating IP address with instance")
         cmd = subcommand_map['server'] + ['add', 'floating', 'ip', self.server_name, \
                                           self.ip_addresses]
         shell.main(cmd)

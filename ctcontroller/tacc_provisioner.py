@@ -1,9 +1,12 @@
 """Contains the TACCProvisioner for provisioning bare-metal hardware at TACC."""
 
 import time
+import logging
 from .util import ProvisionException
 from .provisioner import Provisioner
 from .remote import AuthenticationException
+
+LOGGER = logging.getLogger("CT Controller")
 
 class TACCProvisioner(Provisioner):
     """
@@ -64,10 +67,10 @@ class TACCProvisioner(Provisioner):
                     remote_id = node['Username']
                 runner = self.get_remote_runner(ip_address=node['IP'], remote_id=remote_id)
             except AuthenticationException:
-                print(f'Authentication failed while connecting to node {node}')
+                LOGGER.warning(f'Authentication failed while connecting to node {node}')
                 continue
             except TimeoutError:
-                print(f'SSH connection timed out while connecting node {node}')
+                LOGGER.warning(f'SSH connection timed out while connecting node {node}')
                 continue
             if not runner.file_exists(self.lock_file):
                 runner.create_file(self.lock_file)
@@ -75,20 +78,19 @@ class TACCProvisioner(Provisioner):
                 self.ip_addresses = node['IP']
                 self.remote_id = node['Username']
                 self.device_id = runner.device_id
-                print(f'node {node["IP"]} available')
+                LOGGER.info(f'node {node["IP"]} available')
                 return True
-            print(f'node {node} in use, going to next node...')
+            LOGGER.info(f'node {node} in use, going to next node...')
             del runner
         return False
 
     def provision_instance(self) -> None:
         """Periodically checks for an available node and exits once it has been reserved."""
 
-        print('Waiting for a node to be available')
+        LOGGER.info('Waiting for a node to be available')
         while not self.reserve_node(self.node_type):
-            print('.', end='')
+            LOGGER.info('.')
             time.sleep(3)
-        print('\n')
 
     def shutdown_instance(self) -> None:
         """Deprovisions the node by deleting the lock file."""

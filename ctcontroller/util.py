@@ -2,8 +2,34 @@
 Contains common helper functions and classes.
 """
 
-import sys
+import logging
+from os import environ
 from subprocess import run
+
+LOGGER = logging.getLogger("CT Controller")
+
+def setup_logger(log_dir: str):
+    """Sets up a logger."""
+
+    log_level = environ.get("CT_CONTROLLER_LOG_LEVEL", "INFO")
+    if log_level == "DEBUG":
+        LOGGER.setLevel(logging.DEBUG)
+    elif log_level == "INFO":
+        LOGGER.setLevel(logging.INFO)
+    elif log_level == "WARN":
+        LOGGER.setLevel(logging.WARN)
+    elif log_level == "ERROR":
+        LOGGER.setLevel(logging.ERROR)
+    if not LOGGER.handlers:
+
+        formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
+                '[in %(pathname)s:%(lineno)d]')
+        handler = logging.StreamHandler()
+        fileHandler = logging.FileHandler(f"{log_dir}/run.log")
+        handler.setFormatter(formatter)
+        fileHandler.setFormatter(formatter)
+        LOGGER.addHandler(handler)
+        LOGGER.addHandler(fileHandler)
 
 def capture_shell(cmd):
     """
@@ -29,20 +55,8 @@ def capture_shell(cmd):
     out = proc.stdout.decode('utf-8').strip()
     err = proc.stderr.decode('utf-8').strip()
     if err != '':
-        print(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\033[00m\n')
+        LOGGER.warning(f'\n\033[93mWARNING: "{cmdstr}" gave error message: "{err}"\033[00m\n')
     return out, err
-
-def print_and_exit(msg: str):
-    """
-    Prints the error message and exits the entire application with an exit code of 1
-
-    Parameters:
-        msg (str): the message that should be printed before exiting
-    """
-
-    print(f'\033[91mERROR: {msg}')
-    sys.exit(1)
-
 
 class ApplicationException(Exception):
     """Exception raised during application setup, run, or cleanup."""
