@@ -2,9 +2,12 @@
 The main module of the ctcontroller package.
 It contains the main function that runs the entire provision-run-shutdown-deprovision workflow.
 """
+import logging
 from .camera_traps import CameraTrapsManager as AppManager
 from .controller import Controller
-from .util import ApplicationException
+from .util import ApplicationException, ProvisionException
+
+LOGGER = logging.getLogger("CT Controller")
 
 def main():
     """
@@ -25,9 +28,13 @@ def main():
     elif controller.provisioner_config['target_site'] == 'TACC':
         from .tacc_provisioner import TACCProvisioner as SiteProvisioner # pylint: disable=import-outside-toplevel
 
-    provisioner = SiteProvisioner(controller.provisioner_config)
+    try:
+        provisioner = SiteProvisioner(controller.provisioner_config)
+        provisioner.provision_instance()
+    except ProvisionException as e:
+        LOGGER.exception(e.msg)
+        raise
 
-    provisioner.provision_instance()
     try:
         ctmanager = AppManager(provisioner.get_remote_runner(),
                                log_dir=controller.log_directory,
@@ -35,9 +42,10 @@ def main():
         ctmanager.run_job()
         ctmanager.shutdown_job()
     except ApplicationException as e:
+        LOGGER.exception(e.msg)
         ctmanager.shutdown_job()
         provisioner.shutdown_instance()
-        raise e
+        raise
     else:
         provisioner.shutdown_instance()
 

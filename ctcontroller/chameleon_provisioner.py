@@ -455,6 +455,7 @@ class ChameleonProvisioner(Provisioner):
         """
 
         try:
+            raise ProvisionException('test exception')
             self.select_image()
             self.reserve_lease()
             self.reserve_ip()
@@ -463,7 +464,7 @@ class ChameleonProvisioner(Provisioner):
             self.set_device_id()
         except ProvisionException as e:
             self.shutdown_instance()
-            raise e
+            raise
 
     def shutdown_instance(self):
         """Shuts down the instance and deprovisions the hardware and IP leases."""
