@@ -135,8 +135,8 @@ class Controller():
         """
 
         if self.tapis:
-            self.provisioner_config['job_id'] = os.environ('_tapisJobUUID')
-            self.application_config['job_id'] = os.environ('_tapisJobUUID')
+            self.provisioner_config['job_id'] = os.environ['_tapisJobUUID']
+            self.application_config['job_id'] = os.environ['_tapisJobUUID']
         elif 'job_id' not in self.provisioner_config:
             job_id = ''.join(random.choices(string.ascii_letters, k=7))
             self.provisioner_config['job_id'] = job_id
