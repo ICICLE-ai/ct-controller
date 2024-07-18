@@ -333,6 +333,8 @@ class ChameleonProvisioner(Provisioner):
                    (' with GPU' if self.node_info["gpu"] else ''))
             print(msg)
             raise ProvisionException(msg)
+        # if multiple images are compatible, select the first one
+        image = image.split('\n')[0]
         self.image = image
 
     def create_instance(self):
