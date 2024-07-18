@@ -328,8 +328,11 @@ class ChameleonProvisioner(Provisioner):
         LOGGER.info(cmd)
         image, _ = capture_shell(cmd)
         if image is None or image == '':
-            raise ProvisionException((f'Valid image not found for node of type {self.node_info["cpu"]}'
-                            ('with GPU' if self.node_info["gpu"] else '')))
+            msg = ('Valid image not found for node of type ',
+                   f'{self.node_info["cpu"]}',
+                   (' with GPU' if self.node_info["gpu"] else ''))
+            print(msg)
+            raise ProvisionException(msg)
         self.image = image
 
     def create_instance(self):
@@ -440,6 +443,7 @@ class ChameleonProvisioner(Provisioner):
                 if self.node_info['node_type'] in host_info:
                     gpu_arch = host_info.split(',')[model_index]
                     self.node_info['gpu_arch'] = gpu_arch
+                    LOGGER.info(f'gpu_arch set to {gpu_arch}')
                     break
 
     def provision_instance(self):
