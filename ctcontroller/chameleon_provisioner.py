@@ -440,7 +440,8 @@ class ChameleonProvisioner(Provisioner):
         self.node_info['gpu_arch'] = ''
         if self.node_info['gpu']:
             all_hosts = self.available_hosts()
-            model_index = next((i for i, s in enumerate(all_hosts[0]) if 'gpu.gpu_model' in s), -1)
+            model_index = next((i for i, s in enumerate(all_hosts[0].split(','))
+                                if 'gpu.gpu_model' in s), -1)
             for host_info in all_hosts:
                 if self.node_info['node_type'] in host_info:
                     gpu_arch = host_info.split(',')[model_index]
