@@ -455,7 +455,6 @@ class ChameleonProvisioner(Provisioner):
         """
 
         try:
-            raise ProvisionException('test exception')
             self.select_image()
             self.reserve_lease()
             self.reserve_ip()

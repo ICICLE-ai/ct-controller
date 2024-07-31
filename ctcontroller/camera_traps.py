@@ -75,6 +75,7 @@ class CameraTrapsManager(ApplicationManager):
             fil.write(f'device_id: {self.runner.device_id}\n')
             fil.write(f'user_id: {self.user_id}\n')
             fil.write(f'experiment_id: {self.experiment_id}\n')
+            fil.write('deploy_ckn: true\n')
             if self.version:
                 fil.write(f'ct_version: {self.version}\n')
             if self.gpu:
