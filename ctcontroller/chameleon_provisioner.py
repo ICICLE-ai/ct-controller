@@ -208,7 +208,9 @@ class ChameleonProvisioner(Provisioner):
         cmd = ['openstack'] + subcommand_map['lease'] + \
             ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
         LOGGER.info(' '.join(cmd))
-        lease_out, _ = capture_shell(cmd)
+        lease_out, err = capture_shell(cmd)
+        if 'ERROR: Not enough resources available' in err:
+            raise ProvisionException('Not enough resources available. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.lease_id = lease_id
 
@@ -286,8 +288,7 @@ class ChameleonProvisioner(Provisioner):
         LOGGER.info(f'Reserving lease for floating ip addresses\n{cmd}')
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough floating IPs available' in err:
-            #self.shutdown_instance()
-            raise ProvisionException('Leases have been deleted. Try rerunning later.')
+            raise ProvisionException('Not enough floating IPs available. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.ip_lease_id = lease_id
 
