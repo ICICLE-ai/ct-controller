@@ -62,6 +62,8 @@ class ApplicationException(Exception):
     """Exception raised during application setup, run, or cleanup."""
 
     def __init__(self, msg: str):
+        if msg is tuple:
+            msg = ''.join(msg)
         self.msg = '\033[91m' + msg + '\033[00m'
         super().__init__(self.msg)
 
@@ -69,6 +71,8 @@ class ControllerException(Exception):
     """Exception raised by controller object."""
 
     def __init__(self, msg: str):
+        if msg is tuple:
+            msg = ''.join(msg)
         self.msg = '\033[91m' + msg + '\033[00m'
         super().__init__(self.msg)
 
@@ -76,5 +80,7 @@ class ProvisionException(Exception):
     """Exception raised when provisioner fails to provision hardware."""
 
     def __init__(self, msg: str):
+        if msg is tuple:
+            msg = ''.join(msg)
         self.msg = '\033[91m' + msg + '\033[00m'
         super().__init__(self.msg)
