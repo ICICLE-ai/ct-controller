@@ -7,6 +7,7 @@ import os
 import logging
 import json
 from textwrap import dedent
+import validators
 from .application_manager import ApplicationManager
 from .remote import RemoteRunner
 from .util import ApplicationException, capture_shell
@@ -81,9 +82,14 @@ class CameraTrapsManager(ApplicationManager):
             if self.gpu:
                 fil.write(f'use_gpu_in_scoring: {self.gpu}\n')
             if self.model:
-                raise ApplicationException('Custom model not currently supported')
+                fil.write('use_custom_model_type: true\n')
+                fil.write(f'model_type: {self.model}\n')
             if self.input:
-                raise ApplicationException('Custom input not currently supported')
+                if validators.url(self.input):
+                    fil.write('use_image_url: true\n')
+                    fil.write(f'source_image_url: {self.input}\n')
+                else:
+                    raise ApplicationException(f"Image source: {self.input} is not a valid url")
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')

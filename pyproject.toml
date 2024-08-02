@@ -14,6 +14,7 @@ dependencies = [
  "python-chi==0.17.11",
  "pyyaml",
  "python-blazarclient @git+https://github.com/ChameleonCloud/python-blazarclient.git@chameleoncloud/xena",
+ "validators",
 ]
 
 [tool.hatch.version]
