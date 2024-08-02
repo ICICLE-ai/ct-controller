@@ -107,6 +107,9 @@ class CameraTrapsManager(ApplicationManager):
             3. Runs the custom installer
         """
 
+        # restart jtop service if running on a Jetson
+        if self.node_type == 'Jetson':
+            self.runner.run('systemctl restart jtop.service')
         # Prune containers on system
         prune_cmd = 'docker container prune -f'
         self.runner.run(prune_cmd)
