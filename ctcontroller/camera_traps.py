@@ -82,8 +82,7 @@ class CameraTrapsManager(ApplicationManager):
             if self.gpu:
                 fil.write(f'use_gpu_in_scoring: {self.gpu}\n')
             if self.model:
-                fil.write('use_custom_model_type: true\n')
-                fil.write(f'model_type: {self.model}\n')
+                fil.write(f'model_id: {self.model}\n')
             if self.input:
                 if validators.url(self.input):
                     fil.write('use_image_url: true\n')
