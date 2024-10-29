@@ -3,6 +3,9 @@ name: Docker Image CI
 on:
   release:
     types: [released]
+  push:
+    branches:
+      - dev
   workflow_dispatch:
     #inputs:
     #  release_tag:
@@ -22,6 +25,8 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
+          elif [[ ${{ github.event_name == 'push' }} == true ]; then
+            VER=latest
           else
             VER=${{ github.event.release.tag_name }}
           fi
