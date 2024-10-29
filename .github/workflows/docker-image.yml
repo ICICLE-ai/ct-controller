@@ -25,7 +25,7 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
-          elif [[ ${{ github.event_name == 'push' }} == true ]; then
+          elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             VER=latest
           else
             VER=${{ github.event.release.tag_name }}
