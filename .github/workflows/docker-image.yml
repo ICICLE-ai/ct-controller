@@ -27,10 +27,13 @@ jobs:
             VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             VER=latest
+            BRANCH=dev
           else
             VER=${{ github.event.release.tag_name }}
+            BRANCH=
           fi
           echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -47,4 +50,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: tapis/ctcontroller:${{ env.VER }}
-          build-args: VER=${{ env.VER }}
+          build-args: VER=${{ env.BRANCH }}
