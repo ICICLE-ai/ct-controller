@@ -6,6 +6,7 @@ import time
 import yaml
 import logging
 import openstackclient.shell as shell
+from datetime import datetime, timedelta, UTC
 from .provisioner import Provisioner
 from .util import ProvisionException, capture_shell
 
@@ -202,11 +203,13 @@ class ChameleonProvisioner(Provisioner):
         """
 
         LOGGER.info('Reserving lease for physical nodes')
+        end_time = datetime.now(UTC) + timedelta(hours=6)
         resource_properties = f'["==", "$node_type", "{self.node_type}"]'
         reservation = (f'min={self.num_nodes},max={self.num_nodes},'
                        f'resource_type=physical:host,resource_properties={resource_properties}')
         cmd = ['openstack'] + subcommand_map['lease'] + \
-            ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
+            ['create', '--reservation', reservation, self.lease_name, '--end-date',
+             end_time.strftime("%Y-%m-%d %H:%M"), '-f', 'value', '-c', 'id']
         LOGGER.info(' '.join(cmd))
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough resources available' in err:
