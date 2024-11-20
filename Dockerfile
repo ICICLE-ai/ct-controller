@@ -7,10 +7,7 @@ ADD ./entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-RUN if [[ -z "$BRANCH" ]]; then \
-      pip install git+https://github.com/ICICLE-ai/ct-controller \
-    else; \
-      pip install git+https://github.com/ICICLE-ai/ct-controller@${BRANCH}; \
-    fi
+ADD build_from_repo.sh
+RUN ./build_from_repo.sh && rm ./build_from_repo.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
