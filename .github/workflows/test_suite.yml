@@ -12,6 +12,8 @@ jobs:
   Test_Suite:
     runs-on: ubuntu-latest
     steps:
+      - name: Upgrade curl
+        run: apt-get upgrade -y curl
       - name: Get repo information
         run: |
           curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
