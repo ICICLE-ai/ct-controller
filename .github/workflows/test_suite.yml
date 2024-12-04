@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Upgrade curl
-        run: sudo apt-get upgrade -y curl
+        run: sudo apt-get apt-get install --only-upgrade curl
       - name: Get repo information
         run: |
           curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
