@@ -23,7 +23,7 @@ jobs:
           ./configure --with-openssl  --without-libpsl
           make
           sudo make install
-          /usr/local/bin/curl --version
+          LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH /usr/local/bin/curl --version
       - name: Get repo information
         run: |
           /usr/local/bin/curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
