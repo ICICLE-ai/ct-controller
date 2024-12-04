@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - dev
+      - test_suite_integration
 
 jobs:
   Test_Suite:
@@ -13,7 +14,7 @@ jobs:
     steps:
       - name: Get repo information
         run: |
-          curl -L \
+          curl -L --retry 5 --retry-delay 10 \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.TESTSUITE_REPOSITORY_ACCESS_TOKEN }}" \
