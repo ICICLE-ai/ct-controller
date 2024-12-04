@@ -34,6 +34,7 @@ jobs:
           fi
           echo "VER=$VER" >> "$GITHUB_ENV"
           echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+          echo "CTVER=$VER" >> testinfo.txt
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -51,3 +52,7 @@ jobs:
           push: true
           tags: tapis/ctcontroller:${{ env.VER }}
           build-args: BRANCH=${{ env.BRANCH }}
+      - name: Upload test info
+        uses: actions/upload-artifact@v3
+        with: testinfo
+        path: testinfo.txt
