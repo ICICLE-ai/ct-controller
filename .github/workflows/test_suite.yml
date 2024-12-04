@@ -1,11 +1,11 @@
 name: Test Suite
 
-on:
-  release:
-    types: [released]
-  push:
-    branches:
-      - dev
+#on:
+#  release:
+#    types: [released]
+#  push:
+#    branches:
+#      - dev
   workflow_run:
     workflows: ["docker-image"]
     types:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Download test info
         uses: actions/download-artifact@v3
-        if: (${{ github.event_name == 'workflow_run' }} && ${{ github.event.workflow_run.conclusion == 'success' }}) || (${{ github.event_name == 'workflow_run' }} == false)
+        if: (${{ github.event_name == 'workflow_run' }} && ${{ github.event.workflow_run.conclusion == 'success' }}) || ${{ github.event_name != 'workflow_run' }}
         with:
           name: testinfo
       - name: Trigger Test Suite github action
