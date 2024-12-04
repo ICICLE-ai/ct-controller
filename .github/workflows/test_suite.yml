@@ -12,8 +12,18 @@ jobs:
   Test_Suite:
     runs-on: ubuntu-latest
     steps:
-      - name: Upgrade curl
-        run: sudo apt-get install --only-upgrade curl
+      - name: Upgrade to latest curl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev
+          LATEST_TAG=$(curl -s https://api.github.com/repos/curl/curl/releases/latest | jq -r .tag_name)
+          curl -LO "https://github.com/curl/curl/releases/download/${LATEST_TAG}/curl-${LATEST_TAG}.tar.gz"
+          tar -xvf "curl-${LATEST_TAG}.tar.gz"
+          cd "curl-${LATEST_TAG}"
+          ./configure
+          make
+          sudo make install
+          curl --version
       - name: Get repo information
         run: |
           curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
