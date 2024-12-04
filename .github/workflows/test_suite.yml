@@ -20,7 +20,7 @@ jobs:
           curl -LO "https://curl.se/download/curl-${LATEST_TAG}.tar.gz"
           tar -xvf "curl-${LATEST_TAG}.tar.gz"
           cd "curl-${LATEST_TAG}"
-          ./configure
+          ./configure --with-openssl
           make
           sudo make install
           curl --version
