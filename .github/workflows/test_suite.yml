@@ -1,13 +1,8 @@
 name: Test Suite
 
 on:
-#  release:
-#    types: [released]
-#  push:
-#    branches:
-#      - dev
   workflow_run:
-    workflows: ["docker-image"]
+    workflows: [Docker Image CI]
     types:
         - completed
 
