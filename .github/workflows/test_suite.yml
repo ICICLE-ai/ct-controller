@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Get repo information
         run: |
-          curl -L --retry 5 --retry-delay 10 --tlsv1.2 -v \
+          curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.TESTSUITE_REPOSITORY_ACCESS_TOKEN }}" \
