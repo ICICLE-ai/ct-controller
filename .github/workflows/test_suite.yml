@@ -22,7 +22,7 @@ jobs:
             https://api.github.com/repos/ICICLE-ai/ml_workbench_test_suite
       - name: Trigger Test Suite github action
         run: |
-          curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
+          curl -L --retry 5 --retry-delay 10 --tlsv1.3 --http1.1 -v \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
