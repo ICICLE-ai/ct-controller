@@ -54,5 +54,6 @@ jobs:
           build-args: BRANCH=${{ env.BRANCH }}
       - name: Upload test info
         uses: actions/upload-artifact@v3
-        with: testinfo
-        path: testinfo.txt
+        with:
+          name: testinfo
+          path: testinfo.txt
