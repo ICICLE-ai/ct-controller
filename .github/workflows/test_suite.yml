@@ -12,18 +12,6 @@ jobs:
   Test_Suite:
     runs-on: ubuntu-latest
     steps:
-      - name: Upgrade to latest curl
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libssl-dev
-          LATEST_TAG=$(curl -s https://api.github.com/repos/curl/curl/releases/latest | jq -r .name)
-          curl -LO "https://curl.se/download/curl-${LATEST_TAG}.tar.gz"
-          tar -xvf "curl-${LATEST_TAG}.tar.gz"
-          cd "curl-${LATEST_TAG}"
-          ./configure --with-openssl  --without-libpsl
-          make
-          sudo make install
-          LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH /usr/local/bin/curl --version
       - name: Get repo information
         run: |
           LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH /usr/local/bin/curl -L --retry 5 --retry-delay 10 --tlsv1.2 --http1.1 -v \
