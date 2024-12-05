@@ -53,7 +53,7 @@ jobs:
           tags: tapis/ctcontroller:${{ env.VER }}
           build-args: BRANCH=${{ env.BRANCH }}
       - name: Upload test info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: testinfo
           path: testinfo.txt
