@@ -37,7 +37,7 @@ jobs:
             }
             fs.writeFileSync(path.join(temp, 'testinfo.zip'), Buffer.from(download.data));
       - name: Unzip artifact
-        run: unzip "${{ runner.temp }}/artifacts/testinfo.zip -d "${{ runner.temp }}/artifacts"
+        run: unzip "${{ runner.temp }}/artifacts/testinfo.zip" -d "${{ runner.temp }}/artifacts"
       - name: Trigger Test Suite github action
         run: |
           if [[ ${{ github.event_name == 'release' }} == true ]]; then
