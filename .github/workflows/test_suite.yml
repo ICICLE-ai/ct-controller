@@ -36,16 +36,8 @@ jobs:
               fs.mkdirSync(temp);
             }
             fs.writeFileSync(path.join(temp, 'testinfo.zip'), Buffer.from(download.data));
-      - name: Check download
-        run: |
-          echo "home:"
-          ls -la
-          echo "temp:"
-          ls -la ${{ runner.temp }}
-          echo "artifacts: "
-          ls -la ${{ runner.temp }}/artifacts
       - name: Unzip artifact
-        run: unzip testinfo.zip -d "${{ runner.temp }}/artifacts"
+        run: unzip "${{ runner.temp }}/artifacts/testinfo.zip -d "${{ runner.temp }}/artifacts"
       - name: Trigger Test Suite github action
         run: |
           if [[ ${{ github.event_name == 'release' }} == true ]]; then
