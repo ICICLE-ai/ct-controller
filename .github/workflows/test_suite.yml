@@ -2,7 +2,7 @@ name: Test Suite
 
 on:
   workflow_run:
-    workflows: [Docker Image CI]
+    workflows: ["Docker Image CI"]
     types:
         - completed
 
@@ -21,7 +21,7 @@ jobs:
           if [[ ${{ github.event_name == 'release' }} == true ]]; then
             CTVER=${{ github.event.release.tag_name }}
           elif [[ ${{ github.event_name == 'workflow_run' }} == true ]]; then
-            CTVER=$(cat testinfo.txt)
+            CTVER=$(cat testinfo.txt | grep CTVER | cut -d'=' -f2)
           else
             CTVER="latest"
           fi
