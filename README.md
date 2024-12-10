@@ -103,3 +103,7 @@ The Application Controller handles the setup, running, shutting down, and cleani
 ## Configuration File
 
 The path to the configuration file is specified through the environment variable `CT_CONTROLLER_CONFIG_PATH`. `ctcontroller` expects this file to be a YAML file. [sample_config.yml](sample_config.yml) is a sample config file. Configuration files can be used to specify target host nodes to be provisioned, service account credentials, and authorized users.
+
+# Acknowledgements
+
+*This work has been funded by grants from the National Science Foundation, including the ICICLE AI Institute (OAC 2112606) and Tapis.*
