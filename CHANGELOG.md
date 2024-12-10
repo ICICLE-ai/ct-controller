@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - This changelog has been created to track changes.
 - When code is pushed to the `dev` branch, build and push the image to
-  dockerhub with the `latest` tag.
+  dockerhub with the `latest` tag. On succesful build, trigger test suite.
 - Delete the remote run directory after the application has finished running.
 
 ### Changed
