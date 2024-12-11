@@ -6,6 +6,7 @@ import time
 import yaml
 import logging
 import openstackclient.shell as shell
+from datetime import datetime, timedelta, UTC
 from .provisioner import Provisioner
 from .util import ProvisionException, capture_shell
 
@@ -82,7 +83,7 @@ class ChameleonProvisioner(Provisioner):
         # Configure lease and instance names
         self.job_id = cfg['job_id']
         self.lease_name = self.job_id + '-lease'
-        self.ip_lease_name = self.job_id + '-ip-lease'
+        #self.ip_lease_name = self.job_id + '-ip-lease' # only used with floating IP reservations
         self.server_name = self.job_id + '-server'
 
         # Set network id
@@ -97,9 +98,9 @@ class ChameleonProvisioner(Provisioner):
 
         # Parameters set during provisioning
         self.lease_id = None
-        self.ip_lease_id = None
+        #self.ip_lease_id = None # only used with floating IP reservations
         self.reservation_id = None
-        self.ip_reservation_id = None
+        #self.ip_reservation_id = None # only used with floating IP reservations
         self.image = None
         self.server_id = None
         self.remote_id = 'cc'
@@ -202,11 +203,13 @@ class ChameleonProvisioner(Provisioner):
         """
 
         LOGGER.info('Reserving lease for physical nodes')
+        end_time = datetime.now(UTC) + timedelta(hours=6)
         resource_properties = f'["==", "$node_type", "{self.node_type}"]'
         reservation = (f'min={self.num_nodes},max={self.num_nodes},'
                        f'resource_type=physical:host,resource_properties={resource_properties}')
         cmd = ['openstack'] + subcommand_map['lease'] + \
-            ['create', '--reservation', reservation, self.lease_name, '-f', 'value', '-c', 'id']
+            ['create', '--reservation', reservation, self.lease_name, '--end-date',
+             end_time.strftime("%Y-%m-%d %H:%M"), '-f', 'value', '-c', 'id']
         LOGGER.info(' '.join(cmd))
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough resources available' in err:
@@ -272,6 +275,27 @@ class ChameleonProvisioner(Provisioner):
         else:
             raise ProvisionException(f'Server {server_name} in invalid state {status}')
         return ready
+
+    def release_ip(self):
+        """
+        Releases all floating IP addresses that were allocate without a reservation.
+        """
+
+        cmd = subcommand_map['ip'] + ['delete', self.ip_addresses]
+        LOGGER.info(f'Releasing floating IP address {self.ip_addresses}')
+        shell.main(cmd)
+
+    def allocate_ip(self):
+        """
+        Allocates a floating IP address (without a reservation).
+        If floating IPs are available, sets the IP address as an object attribute.
+        """
+        cmd = ['openstack'] + subcommand_map['ip'] + ['create', 'public', '-f', 'value', '-c', 'floating_ip_address']
+        LOGGER.info(f'Allocating a floating ip address\n{cmd}')
+        ip_addresses, err = capture_shell(cmd)
+        if 'ERROR' in err:
+            raise ProvisionException('Not enough floating IPs available. Try rerunning later.')
+        self.ip_addresses = ip_addresses
 
     def reserve_ip(self):
         """
@@ -347,7 +371,7 @@ class ChameleonProvisioner(Provisioner):
 
         # wait until reservations are ready
         LOGGER.info('Waiting for reservation leases to start')
-        while (not self.check_lease_ready(self.ip_lease_name, self.ip_lease_id) or
+        while (#not self.check_lease_ready(self.ip_lease_name, self.ip_lease_id) or # only used with floating IP reservations
                not self.check_lease_ready(self.lease_name, self.lease_id)):
             LOGGER.info('.')
             time.sleep(3)
@@ -373,15 +397,20 @@ class ChameleonProvisioner(Provisioner):
         shell.main(cmd)
 
     def delete_leases(self):
-        """Deprovision the leases for the physical hardware and floating IP addresses."""
+        """Deprovision the leases for the physical hardware (and floating IP addresses)."""
 
         cmd = subcommand_map['lease'] + ['delete', self.lease_name]
         shell.main(cmd)
-        cmd = subcommand_map['lease'] + ['delete', self.ip_lease_name]
-        shell.main(cmd)
+        # Only used when creating reservations for floating IP addresses
+        #cmd = subcommand_map['lease'] + ['delete', self.ip_lease_name]
+        #shell.main(cmd)
 
     def get_ip_reservation_id(self):
-        """Sets the reservation id for the floating IP reservation as an object attribute."""
+        """
+        Sets the reservation id for the floating IP reservation as an object attribute.
+
+        Note: This was used when creating a floating IP lease, not in use with ad-hoc allocation of IPs.
+        """
 
         cmd = ['openstack'] + subcommand_map['lease'] + \
             ['show', self.ip_lease_name, '-c', 'reservations', '-f', 'value']
@@ -394,6 +423,8 @@ class ChameleonProvisioner(Provisioner):
         """
         Sets the IP address reservation by the reservation lease for floating IPs
         as an object attribute.
+
+        Note: This was used when creating a floating IP lease, not in use with ad-hoc allocation of IPs.
         """
 
         if self.ip_addresses is None:
@@ -459,7 +490,8 @@ class ChameleonProvisioner(Provisioner):
         try:
             self.select_image()
             self.reserve_lease()
-            self.reserve_ip()
+            #self.reserve_ip()
+            self.allocate_ip()
             self.create_instance()
             self.associate_ip()
             self.set_device_id()
@@ -472,3 +504,4 @@ class ChameleonProvisioner(Provisioner):
 
         self.delete_server()
         self.delete_leases()
+        self.release_ip()

@@ -1,13 +1,13 @@
 # Image: tapis/camera_traps_engine
 
 FROM python:3.12
-ARG VER
+ARG BRANCH
 
 ADD ./entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-RUN pip install git+https://github.com/ICICLE-ai/ct-controller#@v${VER}
-
+ADD build_from_repo.sh /build_from_repo.sh
+RUN /build_from_repo.sh && rm /build_from_repo.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
