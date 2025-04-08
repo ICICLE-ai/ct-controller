@@ -2,6 +2,12 @@
 
 The `ctcontroller` tool can be used to manage the provisioning and releasing of edge hardware as well as running and shutting down the camera-traps application.
 
+
+- CI4AI
+- Animal Ecology
+
+# How-To Guide
+
 ## Installation
 
 ### From source
@@ -53,7 +59,7 @@ python -c "import ctcontroller; ctcontroller.run()"
 If using the docker image, the environment variables should be passed via the command-line to the docker image. Also note that any external files will need to be mounted and paths. In particular, if you would like to save any of the output files make sure that the output directory is set to a path that will be available after the container shuts down. For instance, the same non-GPU x86 node at TACC might be run with:
 
 ```
-docker run \ 
+docker run \
 --mount type=bind,source="$HOME/.ssh",target=/ssh_keys \
 --mount type=bind,source="./output",target=/output \
 --mount type=bind,source="./config.yml",target=/config.yml \
@@ -64,6 +70,8 @@ docker run \
 -e CT_CONTROLLER_OUTPUT_DIR=/output \
 tapis/ctcontroller
 ```
+
+# Explanation
 
 ## Architecture Overview
 
