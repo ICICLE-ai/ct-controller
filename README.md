@@ -12,10 +12,22 @@ The `ctcontroller` tool can be used to manage the provisioning and releasing of 
 
 ### From source
 
-Clone the repo and ensure that you run from the root of the ctcontroller repository.
+Download the release as source code and unzip it
+
 ```
-git clone https://github.com/ICICLE-ai/ctcontroller.git
-cd ctcontroller
+wget https://github.com/ICICLE-ai/ct-controller/archive/refs/tags/${VER}.tar.gz
+tar xf ${VER}.tar.gz
+```
+Then ensure that you run from the root of the ctcontroller repository
+
+```
+cd ct-controller-${VER}
+```
+
+or add the package to the `PYTHONPATH`
+
+```
+export PYTHONPATH:$PWD/ct-controller-${VER}/ctcontroller:$PYTHONPATH
 ```
 
 ### Pip
@@ -23,7 +35,7 @@ cd ctcontroller
 `ctcontroller` can also be installed via pip with:
 
 ```
-pip install https://github.com/ICICLE-ai/ct-controller@v${VER}
+pip install git+https://github.com/ICICLE-ai/ct-controller@${VER}
 ```
 
 
@@ -39,18 +51,19 @@ docker pull tapis/ctcontroller
 
 ### Source/pip
 
-If installation is via pip or source, export the variables described [below](#control_variables) to your path. For instance, to run on a non-GPU x86 node at TACC you might export:
+If installation is via pip or source, export the variables described [below](#control-variables) to your path. For instance, to run on a non-GPU x86 node at TACC you might export:
 ```
+export CT_CONTROLLER_NUM_NODES=1
 export CT_CONTROLLER_TARGET_SITE=TACC
 export CT_CONTROLLER_NODE_TYPE=x86
 export CT_CONTROLLER_GPU=0
 export CT_CONTROLLER_CONFIG_PATH=./config.yml
+export CT_CONTROLLER_OUTPUT_DIR=./output
 ```
 
-Then, import and run the `ctcontroller` package:
+Ensure that the output directory exists and is writable. Then, import and run the `ctcontroller` package:
 
 ```
-cd ctcontroller
 python -c "import ctcontroller; ctcontroller.run()"
 ```
 
@@ -64,6 +77,7 @@ docker run \
 --mount type=bind,source="./output",target=/output \
 --mount type=bind,source="./config.yml",target=/config.yml \
 -e CT_CONTROLLER_TARGET_SITE=TACC \
+-e CT_CONTROLLER_NUM_NODES=1
 -e CT_CONTROLLER_NODE_TYPE=x86 \
 -e CT_CONTROLLER_GPU=0 \
 -e CT_CONTROLLER_CONFIG_PATH=./config.yml \
@@ -111,6 +125,15 @@ The Application Controller handles the setup, running, shutting down, and cleani
 ## Configuration File
 
 The path to the configuration file is specified through the environment variable `CT_CONTROLLER_CONFIG_PATH`. `ctcontroller` expects this file to be a YAML file. [sample_config.yml](sample_config.yml) is a sample config file. Configuration files can be used to specify target host nodes to be provisioned, service account credentials, and authorized users.
+
+The configuration file consists of three parts: 
+1. A description of the systems that can be accessed. Each system is given a unique identifier and contains the following attributes:
+   1. `Name`, which expects a string corresponding to an identifier to for the ssh key for the system
+   2. `Path`, which contains the path to the ssh key for the system
+   3. `Hosts`, which is a dictionary whose keys are a hardware type and the values are lists of valid IP addresses for that host and the username on those hosts. For instance, `{'hardware_type': [{'IP': ip_address1, 'Username': username1}, {'IP': ip_address2, 'Username: username2}]}` would be a valid value for the `Hosts` attribute.
+2. A list of authenticated users. The key is `Users` and authorized users must be a list
+3. Advanced settings. The key is `Settings` and available settings are:
+   1. `AuthenticateUsers=True|False`.
 
 # Acknowledgements
 
