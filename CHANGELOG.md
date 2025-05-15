@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2] 2024-12-10
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Removed
+
+## [0.2] 2025-04-29
 
 ### Added
 - This changelog has been created to track changes.
@@ -18,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `model_id` instead of `model_type`.
 - Specify a 6 hour lease for Chameleon hardware, rather than the default 1 day.
 - Use ad-hoc floating IPs rather than floating IP reservation leases.
-
-### Changed
 
 ### Removed
 
