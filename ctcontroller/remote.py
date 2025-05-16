@@ -2,6 +2,7 @@
 Contains the RemoteRunner class which manages the connection between the local machine and
 a provisioned remote server where the application will be run.
 """
+import io
 import os
 import time
 import stat
@@ -51,15 +52,41 @@ class RemoteRunner():
             Creates a directory at the specified path on the remote server.
     """
 
-    def __init__(self, ip_address: str, username: str, pkey_path: str, device_id=None, num_retries=30):
-        pkey = paramiko.RSAKey.from_private_key_file(pkey_path)
+    def __init__(self, ip_address: str, username: str, pkey_path: str, port=22, device_id=None, num_retries=30, jump_host=None, jump_user=None, jump_pkey_path=None, jump_port=22):
+        self.client = None
+        self.sftp = None
+        if jump_host:
+            PKey = self.get_key_class(path=pkey_path)
+            jump_pkey = PKey.from_private_key_file(pkey_path)
+            jump_client = paramiko.SSHClient()
+            jump_policy = paramiko.AutoAddPolicy()
+            jump_client.set_missing_host_key_policy(jump_policy)
+            jump_client.connect(jump_host, username=jump_user, pkey=jump_pkey)
+            transport = jump_client.get_transport()
+            dest_addr = (ip_address, port)
+            local_addr = (jump_host, jump_port)
+            channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
+            if not os.path.exists(jump_pkey_path):
+                sftp_client = jump_client.open_sftp()
+                with sftp_client.open(jump_pkey_path, 'r') as remote_key:
+                    key = remote_key.read().decode('utf-8')
+                    PKey = self.get_key_class(pkey=key)
+                    pkey = PKey.from_private_key(io.StringIO(key))
+                sftp_client.close()
+            else:
+                PKey = self.get_key_class(path=jump_pkey_path)
+                pkey = PKey.from_private_key_file(jump_pkey_path)
+        else:
+            channel = None
+            PKey = self.get_key_class(path=pkey_path)
+            pkey = PKey.from_private_key_file(pkey_path)
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
         client.set_missing_host_key_policy(policy)
 
         for _itr in range(num_retries):
             try:
-                client.connect(ip_address, username=username, pkey=pkey)
+                client.connect(ip_address, username=username, pkey=pkey, sock=channel)
                 break
             except OSError:
                 LOGGER.warning(f'os error while trying to connect to {ip_address}')
@@ -237,3 +264,23 @@ class RemoteRunner():
         """
 
         self.sftp.mkdir(pth)
+
+    def get_key_class(self, path: str=None, pkey: str=None):
+        if path:
+            with open(path, 'r') as f:
+                header = f.readline()
+        elif pkey:
+            header = pkey.split('\n')[0]
+        else:
+            return paramiko.PKey
+
+        if 'BEGIN RSA PRIVATE KEY' in header:
+            return paramiko.RSAKey
+        elif 'BEGIN OPENSSH PRIVATE KEY' in header:
+            return paramiko.Ed25519Key
+        elif 'BEGIN EC PRIVATE KEY' in header:
+            return paramiko.ECDSAKey
+        elif 'BEGIN DSA PRIVATE KEY' in header:
+            return paramiko.DSSKey
+        else:
+            return paramiko.PKey

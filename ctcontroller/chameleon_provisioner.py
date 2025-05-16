@@ -207,7 +207,7 @@ class ChameleonProvisioner(Provisioner):
         resource_properties = f'["==", "$node_type", "{self.node_type}"]'
         reservation = (f'min={self.num_nodes},max={self.num_nodes},'
                        f'resource_type=physical:host,resource_properties={resource_properties}')
-        cmd = ['openstack'] + subcommand_map['lease'] + \
+        cmd = ['openstack', 'reservation', 'lease'] + \
             ['create', '--reservation', reservation, self.lease_name, '--end-date',
              end_time.strftime("%Y-%m-%d %H:%M"), '-f', 'value', '-c', 'id']
         LOGGER.info(' '.join(cmd))
@@ -281,7 +281,7 @@ class ChameleonProvisioner(Provisioner):
         Releases all floating IP addresses that were allocate without a reservation.
         """
 
-        cmd = subcommand_map['ip'] + ['delete', self.ip_addresses]
+        cmd = ['floating', 'ip', 'delete', self.ip_addresses]
         LOGGER.info(f'Releasing floating IP address {self.ip_addresses}')
         shell.main(cmd)
 
@@ -290,7 +290,7 @@ class ChameleonProvisioner(Provisioner):
         Allocates a floating IP address (without a reservation).
         If floating IPs are available, sets the IP address as an object attribute.
         """
-        cmd = ['openstack'] + subcommand_map['ip'] + ['create', 'public', '-f', 'value', '-c', 'floating_ip_address']
+        cmd = ['openstack', 'floating', 'ip', 'create', 'public', '-f', 'value', '-c', 'floating_ip_address']
         LOGGER.info(f'Allocating a floating ip address\n{cmd}')
         ip_addresses, err = capture_shell(cmd)
         if 'ERROR' in err:
@@ -307,7 +307,7 @@ class ChameleonProvisioner(Provisioner):
 
         res = (f'resource_type=virtual:floatingip,network_id={self.public_network_id},'
                f'amount={self.num_nodes}')
-        cmd = ['openstack'] + subcommand_map['lease'] \
+        cmd = ['openstack', 'reservation', 'lease'] \
             + ['create', '--reservation', res, self.ip_lease_name, '-f', 'value', '-c', 'id']
         LOGGER.info(f'Reserving lease for floating ip addresses\n{cmd}')
         lease_out, err = capture_shell(cmd)
@@ -376,7 +376,7 @@ class ChameleonProvisioner(Provisioner):
             LOGGER.info('.')
             time.sleep(3)
         LOGGER.info('Creating instance on the lease')
-        cmd = ['openstack'] + subcommand_map['server']  \
+        cmd = ['openstack', 'server']  \
                             + ['create', '--image', self.image,
                                '--network', self.network_id,
                                '--flavor', 'baremetal',
@@ -393,13 +393,13 @@ class ChameleonProvisioner(Provisioner):
     def delete_server(self):
         """Deletes the server."""
 
-        cmd = subcommand_map['server'] + ['delete', self.server_name]
+        cmd = ['server', 'delete', self.server_name]
         shell.main(cmd)
 
     def delete_leases(self):
         """Deprovision the leases for the physical hardware (and floating IP addresses)."""
 
-        cmd = subcommand_map['lease'] + ['delete', self.lease_name]
+        cmd = ['reservation', 'lease', 'delete', self.lease_name]
         shell.main(cmd)
         # Only used when creating reservations for floating IP addresses
         #cmd = subcommand_map['lease'] + ['delete', self.ip_lease_name]
@@ -412,7 +412,7 @@ class ChameleonProvisioner(Provisioner):
         Note: This was used when creating a floating IP lease, not in use with ad-hoc allocation of IPs.
         """
 
-        cmd = ['openstack'] + subcommand_map['lease'] + \
+        cmd = ['openstack', 'reservation', 'lease'] + \
             ['show', self.ip_lease_name, '-c', 'reservations', '-f', 'value']
         out, _ = capture_shell(cmd)
         match  = search(r'"id": "([^"]+)"', out )
@@ -429,7 +429,7 @@ class ChameleonProvisioner(Provisioner):
 
         if self.ip_addresses is None:
             self.get_ip_reservation_id()
-            cmd = ['openstack'] + subcommand_map['ip'] \
+            cmd = ['openstack', 'floating', 'ip'] \
                 + ['list', '--tags', f'blazar,reservation:{self.ip_reservation_id}', '-c', \
                    'Floating IP Address', '-f', 'value']
             LOGGER.info(cmd)
@@ -447,7 +447,7 @@ class ChameleonProvisioner(Provisioner):
             LOGGER.info('.')
             time.sleep(3)
         LOGGER.info("Associating floating IP address with instance")
-        cmd = subcommand_map['server'] + ['add', 'floating', 'ip', self.server_name, \
+        cmd = ['server', 'add', 'floating', 'ip', self.server_name, \
                                           self.ip_addresses]
         shell.main(cmd)
         check_cmd = ['openstack', 'server', 'show', self.server_name, '-c', 'addresses', '-f', \
