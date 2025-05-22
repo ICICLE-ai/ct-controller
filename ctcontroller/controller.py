@@ -155,6 +155,10 @@ class Controller():
             log_dir = self.controller_config['output_dir']
         else:
             log_dir = './output'
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception:
+            raise ControllerException(f'Log directory {log_dir} does not exist and could not be created.')
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:
