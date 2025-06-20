@@ -52,9 +52,10 @@ class RemoteRunner():
             Creates a directory at the specified path on the remote server.
     """
 
-    def __init__(self, ip_address: str, username: str, pkey_path: str, port=22, device_id=None, num_retries=30, jump_host=None, jump_user=None, jump_pkey_path=None, jump_port=22):
+    def __init__(self, ip_address: str, username: str, pkey_path: str, port=22, device_id=None, num_retries=30, jump_host=None, jump_user=None, jump_pkey_path=None, jump_port=22, httpproxy=None):
         self.client = None
         self.sftp = None
+        self.httpproxy=httpproxy
         if jump_host:
             PKey = self.get_key_class(path=pkey_path)
             jump_pkey = PKey.from_private_key_file(pkey_path)
