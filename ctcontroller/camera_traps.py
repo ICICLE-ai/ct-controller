@@ -122,7 +122,7 @@ class CameraTrapsManager(ApplicationManager):
         cd {self.runner.home_dir}
         rm -rf {self.run_dir}
         docker pull tapis/camera-traps-installer:{self.version}
-        docker run -it --rm --user `id -u`:`id -g` -v {self.runner.home_dir}:/host/ -e INSTALL_HOST_PATH={self.runner.home_dir} -e INPUT_FILE=ct_controller.yml{proxycmd if httpproxy is not None else ""} tapis/camera-traps-installer:{self.version}
+        docker run -it --rm --user `id -u`:`id -g` -v {self.runner.home_dir}:/host/ -e INSTALL_HOST_PATH={self.runner.home_dir} -e INPUT_FILE=ct_controller.yml{proxycmd if self.runner.httpproxy is not None else ""} tapis/camera-traps-installer:{self.version}
         rm ct_controller.yml
         """)
         out = self.runner.run(install_cmd)
