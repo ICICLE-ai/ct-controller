@@ -102,12 +102,23 @@ class RemoteRunner():
             self.device_id = device_id
         else:
             self.device_id = self.run('hostname')
+        self.cpu_arch = self.get_cpu_arch()
 
     def __del__(self):
         if self.sftp:
             self.sftp.close()
         if self.client:
             self.client.close()
+
+    def get_cpu_arch(self) -> str:
+        """
+        Determine whether runner is running on an ARM-based on x86-based architecture
+        """
+        machine = self.run('uname -m')
+        if any(arch in machine for arch in ['arm', 'aarch']):
+            return 'arm'
+        else:
+            return 'x86'
 
     def run(self, cmd: str) -> str:
         """

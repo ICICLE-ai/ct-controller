@@ -96,6 +96,8 @@ class CameraTrapsManager(ApplicationManager):
             if self.node_type == 'Jetson':
                 fil.write('image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n')
                 fil.write('power_monitor_backend: jtop\n')
+            if self.runner.cpu_arch == 'arm':
+                fil.write('power_monitor_backend: scaphandre\n')
         self.runner.copy_file(f'{self.log_dir}/ct_controller.yml', f'{rmt_pth}/ct_controller.yml')
 
 
