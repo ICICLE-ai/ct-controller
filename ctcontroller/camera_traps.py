@@ -135,6 +135,7 @@ class CameraTrapsManager(ApplicationManager):
         docker container prune -f
         docker image prune -f
         docker compose pull
+        docker pull tapis/powerjoular
         """)
         self.runner.run(pull_cmd)
 
