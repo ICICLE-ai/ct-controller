@@ -36,6 +36,7 @@ class Controller():
             'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
             'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
             'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
+            'mode':              {'required': False, 'category': ['application'], 'type': str},
             'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
         }
 
