@@ -58,7 +58,7 @@ class CameraTrapsManager(ApplicationManager):
 
         super().__init__(runner, log_dir, cfg)
 
-        out, _ = capture_shell("curl -s  https://api.github.com/repos/tapis-project/camera-traps/tags")
+        out, _ = capture_shell("curl -s https://api.github.com/repos/tapis-project/camera-traps/tags")
         latest = json.loads(out)[0]['name']
         self.version = cfg.get('ct_version', latest)
         self.gpu = cfg.get('gpu')
