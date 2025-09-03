@@ -138,8 +138,9 @@ class CameraTrapsManager(ApplicationManager):
             return False
 
         all_dev, v4l2_dev = _get_all_devices()
-        if len(v4l2_dev) == 0 and len(all_dev) > 0:
+        if len(v4l2_dev) == 0:
             _create_v4l2_device(all_dev)
+            all_dev, v4l2_dev = _get_all_devices()
         if len(v4l2_dev) > 0:
             for dev in v4l2_dev:
                 if _is_v4l2loopback_available(dev):
