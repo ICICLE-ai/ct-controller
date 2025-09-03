@@ -36,6 +36,7 @@ class Controller():
             'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
             'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
             'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
+            'mode':              {'required': False, 'category': ['application'], 'type': str},
             'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
         }
 
@@ -155,6 +156,10 @@ class Controller():
             log_dir = self.controller_config['output_dir']
         else:
             log_dir = './output'
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception:
+            raise ControllerException(f'Log directory {log_dir} does not exist and could not be created.')
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:

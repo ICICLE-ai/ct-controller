@@ -65,7 +65,11 @@ class TACCProvisioner(Provisioner):
                     remote_id = self.remote_id
                 else:
                     remote_id = node['Username']
-                runner = self.get_remote_runner(ip_address=node['IP'], remote_id=remote_id)
+                runner = self.get_remote_runner(ip_address=node['IP'], remote_id=remote_id,
+                                                jump_ip=node.get('JumpHost'),
+                                                jump_id=node.get('JumpUser'),
+                                                jump_key=node.get('JumpKey'),
+                                                httpproxy=node.get('HttpProxy'))
             except AuthenticationException:
                 LOGGER.warning(f'Authentication failed while connecting to node {node}')
                 continue
@@ -78,6 +82,10 @@ class TACCProvisioner(Provisioner):
                 self.ip_addresses = node['IP']
                 self.remote_id = node['Username']
                 self.device_id = runner.device_id
+                self.jump_ip = node.get('JumpHost')
+                self.jump_id = node.get('JumpUser')
+                self.jump_key = node.get('JumpKey')
+                self.httpproxy = node.get('HttpProxy')
                 LOGGER.info(f'node {node["IP"]} available')
                 return True
             LOGGER.info(f'node {node} in use, going to next node...')

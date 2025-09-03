@@ -4,6 +4,7 @@ a remote node
 """
 
 import os
+import re
 import logging
 import json
 from textwrap import dedent
@@ -57,13 +58,15 @@ class CameraTrapsManager(ApplicationManager):
 
         super().__init__(runner, log_dir, cfg)
 
-        out, _ = capture_shell("curl -s  https://api.github.com/repos/tapis-project/camera-traps/tags")
+        out, _ = capture_shell("curl -s https://api.github.com/repos/tapis-project/camera-traps/tags")
         latest = json.loads(out)[0]['name']
         self.version = cfg.get('ct_version', latest)
         self.gpu = cfg.get('gpu')
         self.model = cfg.get('model')
         self.input = cfg.get('input')
         self.node_type = cfg.get('node_type')
+        self.source_format = cfg.get('source_format', 'image')
+        self.mode = cfg.get('mode', 'simulation')
         self.run_dir = None
 
     def generate_cfg_file(self):
@@ -76,7 +79,7 @@ class CameraTrapsManager(ApplicationManager):
             fil.write(f'device_id: {self.runner.device_id}\n')
             fil.write(f'user_id: {self.user_id}\n')
             fil.write(f'experiment_id: {self.experiment_id}\n')
-            fil.write('deploy_ckn: true\n')
+            fil.write(f'mode: {self.mode}\n')
             if self.version:
                 fil.write(f'ct_version: {self.version}\n')
             if self.gpu:
@@ -85,18 +88,64 @@ class CameraTrapsManager(ApplicationManager):
                 fil.write(f'model_id: {self.model}\n')
             if self.input:
                 if validators.url(self.input):
-                    fil.write('use_image_url: true\n')
-                    fil.write(f'source_image_url: {self.input}\n')
+                    if self.mode == 'simulation':
+                        fil.write('use_image_url: true\n')
+                        fil.write(f'source_image_url: {self.input}\n')
+                    elif self.mode == 'video_simulation':
+                        fil.write('source_video_url: {self.input}\n')
                 else:
                     raise ApplicationException(f"Image source: {self.input} is not a valid url")
+            if self.mode == 'video_simulation':
+                fil.write(f'motion_video_device: {self.get_video_device()}\n')
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')
             if self.node_type == 'Jetson':
                 fil.write('image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n')
                 fil.write('power_monitor_backend: jtop\n')
+            if self.runner.cpu_arch == 'arm':
+                fil.write('power_monitor_backend: scaphandre\n')
         self.runner.copy_file(f'{self.log_dir}/ct_controller.yml', f'{rmt_pth}/ct_controller.yml')
 
+
+    def get_video_device(self):
+        """
+        Determines if there are any v4l2loopback devices available on the remote host
+        """
+        def _create_v4l2_device(all_devices):
+            cmd = 'sudo modprobe v4l2loopback exclusive_caps=1 card_label=VirtualCam'
+            self.runner.run(cmd)
+        
+        def _get_all_devices():
+            dev_regex = re.compile(r'(/dev/video\d+)')
+            v4l2devices = []
+            cmd = 'v4l2-ctl --list-devices'
+            out = self.runner.run(cmd)
+            all_devices = dev_regex.findall(out)
+            if 'v4l2loopback' in out:
+                blocks = out.split('\n\n')
+                for block in blocks:
+                    if 'v4l2loopback' in block:
+                        v4l2devices.extend(dev_regex.findall(block))
+            return all_devices, v4l2devices
+        
+        def _is_v4l2loopback_available(device):
+            cmd = f'v4l2-ctl -d {device} --all'
+            out = self.runner.run(cmd)
+            for line in out.splitlines():
+                if line.strip().lower().startswith('driver name') and 'v4l2 loopback' in line.lower():
+                    return True
+            return False
+
+        all_dev, v4l2_dev = _get_all_devices()
+        if len(v4l2_dev) == 0:
+            _create_v4l2_device(all_dev)
+            all_dev, v4l2_dev = _get_all_devices()
+        if len(v4l2_dev) > 0:
+            for dev in v4l2_dev:
+                if _is_v4l2loopback_available(dev):
+                    return dev
+        raise ApplicationException(f'Video simulation mode selected but no compatible video devices found on remote server {self.runner.ip_address}')
 
     def setup_app(self):
         """
@@ -116,11 +165,12 @@ class CameraTrapsManager(ApplicationManager):
         self.run_dir = f'{self.runner.home_dir}/ct_run'
         self.generate_cfg_file()
         # Install to run directory and cleanup config
+        proxy_cmd = f' -e HTTP_PROXY={self.runner.httpproxy} -e HTTPS_PROXY={self.runner.httpproxy}'
         install_cmd = dedent(f"""
         cd {self.runner.home_dir}
         rm -rf {self.run_dir}
         docker pull tapis/camera-traps-installer:{self.version}
-        docker run -it --rm --user `id -u`:`id -g` -v {self.runner.home_dir}:/host/ -e INSTALL_HOST_PATH={self.runner.home_dir} -e INPUT_FILE=ct_controller.yml tapis/camera-traps-installer:{self.version}
+        docker run -it --rm --user `id -u`:`id -g` -v {self.runner.home_dir}:/host/ -e INSTALL_HOST_PATH={self.runner.home_dir} -e INPUT_FILE=ct_controller.yml{proxy_cmd if self.runner.httpproxy is not None else ""} tapis/camera-traps-installer:{self.version}
         rm ct_controller.yml
         """)
         out = self.runner.run(install_cmd)
@@ -131,6 +181,7 @@ class CameraTrapsManager(ApplicationManager):
         docker container prune -f
         docker image prune -f
         docker compose pull
+        docker pull tapis/powerjoular
         """)
         self.runner.run(pull_cmd)
 

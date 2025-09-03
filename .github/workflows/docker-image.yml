@@ -7,11 +7,11 @@ on:
     branches:
       - dev
   workflow_dispatch:
-    #inputs:
-    #  release_tag:
-    #    description: ''
-    #    required: true
-    #    type: string
+    inputs:
+      run_tests:
+        description: 'trigger test suite'
+        type: boolean
+        default: false
 
 
 jobs:
@@ -24,7 +24,9 @@ jobs:
       - name: Set VER
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
-            VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
+            #VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
+            VER=latest
+            BRANCH=${{ github.ref_name }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             VER=latest
             BRANCH=dev
@@ -57,3 +59,15 @@ jobs:
         with:
           name: testinfo
           path: testinfo.txt
+  trigger_tests:
+    runs-on: ubuntu-latest
+    environment: main
+    needs: docker
+    steps:
+      - name: Check if tests are disabled
+        run: |
+          if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]] && [ "${{ inputs.run_tests }}" == "false" ];
+          then
+            echo "Tests are disabled"
+            exit 1
+          fi
