@@ -65,8 +65,10 @@ class CameraTrapsManager(ApplicationManager):
         self.model = cfg.get('model')
         self.input = cfg.get('input')
         self.node_type = cfg.get('node_type')
-        self.source_format = cfg.get('source_format', 'image')
+        self.input_dataset_type = cfg.get('input_dataset_type', 'image')
         self.mode = cfg.get('mode', 'simulation')
+        if self.mode == 'simulation' and self.input_dataset_type == 'video':
+            self.mode = 'video_simulation'
         self.run_dir = None
 
     def generate_cfg_file(self):
@@ -88,13 +90,13 @@ class CameraTrapsManager(ApplicationManager):
                 fil.write(f'model_id: {self.model}\n')
             if self.input:
                 if validators.url(self.input):
-                    if self.mode == 'simulation':
+                    if self.input_dataset_type == 'image':
                         fil.write('use_image_url: true\n')
                         fil.write(f'source_image_url: {self.input}\n')
-                    elif self.mode == 'video_simulation':
+                    elif self.input_dataset_type == 'video':
                         fil.write('source_video_url: {self.input}\n')
                 else:
-                    raise ApplicationException(f"Image source: {self.input} is not a valid url")
+                    raise ApplicationException(f"Input dataset source: {self.input} is not a valid url")
             if self.mode == 'video_simulation':
                 fil.write(f'motion_video_device: {self.get_video_device()}\n')
             if self.advanced:
