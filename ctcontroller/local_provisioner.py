@@ -45,6 +45,5 @@ class LocalProvisioner(Provisioner):
         if os.path.exists(self.lock_file):
             os.remove(self.lock_file)
         else:
-            self.status = Status.FAILED
-            raise ProvisionException('Cannot deprovision localhost, it was never provisioned')
+            LOGGER.WARNING('Cannot deprovision localhost, it was never provisioned')
         self.status = Status.SHUTDOWN

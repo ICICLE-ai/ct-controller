@@ -42,7 +42,7 @@ class LocalRunner():
     """
 
     def __init__(self):
-        self.ip_address = self.get_ip_address()
+        self.ip_address = 'localhost'
         self.home_dir = os.getenv('HOME')
         self.device_id = self.run('hostname')
         self.cpu_arch = self.get_cpu_arch()
@@ -57,26 +57,6 @@ class LocalRunner():
             return 'arm'
         else:
             return 'x86'
-
-    def get_ip_address(self):
-        # if running inside docker
-        try:
-            result = shell_run(['ip', 'route'], capture_output=True, text=True, check=True)
-            for line in result.stdout.splitlines():
-                if 'default via' in line:
-                    return line.split()[2]
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            pass
-    
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            host_ip = s.getsockname()[0]
-            s.close()
-            return host_ip
-        except socket.error:
-            raise Exception('Could not determine ip address')
-
 
     def run(self, cmd: str) -> str:
         """
