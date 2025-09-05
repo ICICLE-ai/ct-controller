@@ -1,0 +1,18 @@
+[Unit]
+Description=CTController service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+
+ExecStartPre=/usr/bin/start-ctcontroller-container.sh
+ExecStart=/usr/bin/docker start -a ctcontroller
+
+#ExecStart=/usr/bin/docker run -d --name ctcontroller -p 8080:8080 -- tapis/ctcontroller:demo -d
+ExecStop=/usr/bin/docker stop ctcontroller
+
+#ExecStop=/usr/bin/docker rm -f ctcontroller
+
+[Install]
+WantedBy=multi-user.target
