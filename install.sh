@@ -1,5 +1,6 @@
 #!/bin/bash
 
+chmod +x ./systemd/start-ctcontroller-container.sh
 sudo cp ./systemd/ctcontroller.service /etc/systemd/system
 sudo cp ./systemd/start-ctcontroller-container.sh /usr/local/bin/
 
