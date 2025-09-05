@@ -12,6 +12,11 @@ on:
         description: 'trigger test suite'
         type: boolean
         default: false
+      release_tag:
+        default: 'latest'
+        description: ''
+        required: true
+        type: string
 
 
 jobs:
@@ -25,7 +30,7 @@ jobs:
         run: |
           if [[ ${{ github.event_name == 'workflow_dispatch' }} == true ]]; then
             #VER=`sed -n 's/^VERSION = "\([^"]*\)".*/\1/p' ctcontroller/__init__.py`
-            VER=latest
+            VER=${{ inputs.release_tag }}
             BRANCH=${{ github.ref_name }}
           elif [[ ${{ github.event_name == 'push' }} == true ]]; then
             VER=latest
