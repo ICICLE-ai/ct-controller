@@ -12,6 +12,28 @@ from .util import ControllerException, setup_logger
 
 LOGGER = logging.getLogger("CT Controller")
 
+# List of possible environment variables to be used by the controller
+controller_vars = {
+    'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
+    'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
+    'node_type':         {'required': True,  'category': ['provisioner',
+                                                          'application'], 'type': str},
+    'gpu':               {'required': True,  'category': ['provisioner',
+                                                          'application'], 'type': bool},
+    'model':             {'required': False, 'category': ['application'], 'type': str},
+    'input':             {'required': False, 'category': ['application'], 'type': str},
+    'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
+    'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
+    'ct_version':        {'required': False, 'category': ['application'], 'type': str},
+    'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
+    'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
+    'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
+    'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
+    'mode':              {'required': False, 'category': ['application'], 'type': str},
+    'input_dataset_type':{'required': False, 'category': ['application'], 'type': str},
+    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
+}
+
 class Controller():
     """
     A class that takes user inputs to set appropriate configuration parameters to
@@ -19,34 +41,13 @@ class Controller():
     """
 
     def __init__(self):
-        # List of possible environment variables to be used by the controller
-        self.vars = {
-            'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
-            'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
-            'node_type':         {'required': True,  'category': ['provisioner',
-                                                                  'application'], 'type': str},
-            'gpu':               {'required': True,  'category': ['provisioner',
-                                                                  'application'], 'type': bool},
-            'model':             {'required': False, 'category': ['application'], 'type': str},
-            'input':             {'required': False, 'category': ['application'], 'type': str},
-            'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
-            'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
-            'ct_version':        {'required': False, 'category': ['application'], 'type': str},
-            'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
-            'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
-            'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
-            'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
-            'mode':              {'required': False, 'category': ['application'], 'type': str},
-            'input_dataset_type':{'required': False, 'category': ['application'], 'type': str},
-            'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
-        }
 
         provisioner_config = {}
         application_config = {}
         controller_config = {}
 
         # iterate over variables and copy values into config dictionaries
-        for key, val in self.vars.items():
+        for key, val in controller_vars.items():
             var = f'CT_CONTROLLER_{key.upper()}'
             found = False
             if var in os.environ:

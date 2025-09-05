@@ -8,7 +8,7 @@ import logging
 import openstackclient.shell as shell
 from datetime import datetime, timedelta, UTC
 from .provisioner import Provisioner
-from .util import ProvisionException, capture_shell
+from .util import ProvisionException, capture_shell, Status
 
 LOGGER = logging.getLogger("CT Controller")
 subcommand_map = {
@@ -78,6 +78,7 @@ class ChameleonProvisioner(Provisioner):
         # ensure that app credentials are already defined in the environment
         if (os.environ.get('OS_APPLICATION_CREDENTIAL_ID') is None or
             os.environ.get('OS_APPLICATION_CREDENTIAL_SECRET') is None):
+            self.status = Status.FAILED
             raise ProvisionException('Chameleon Application credentials must be specified in the environment')
 
         # Configure lease and instance names
@@ -119,11 +120,13 @@ class ChameleonProvisioner(Provisioner):
         """
 
         if not os.path.exists(config_path):
+            self.status = Status.FAILED
             raise ProvisionException('Config file not found')
         with open(config_path, 'r', encoding='utf-8') as fil:
             auth = yaml.safe_load(fil)
         if ('Users' in auth and self.user not in auth['Users']
             and auth['Settings']['AuthenticateUsers']):
+            self.status = Status.FAILED
             raise ProvisionException(f'{self.user} does not have appropriate permissions \
                                      to launch with a service account.')
         self.key_name = auth[self.site]['Name']
@@ -155,6 +158,7 @@ class ChameleonProvisioner(Provisioner):
             if arch != '':
                 break
         else: #arch == ''
+            self.status = Status.FAILED
             raise ProvisionException(f'Cannot determine CPU architecture of specified \
                            node type {self.node_type}')
         return arch
@@ -171,6 +175,7 @@ class ChameleonProvisioner(Provisioner):
 
         cmd = subcommand_map.get(check_type)
         if cmd is None:
+            self.status = Status.FAILED
             raise ProvisionException(f'"{check_type}" is not a valid input to the check \
                            subcommand')
         cmd.append('list')
@@ -213,6 +218,7 @@ class ChameleonProvisioner(Provisioner):
         LOGGER.info(' '.join(cmd))
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough resources available' in err:
+            self.status = Status.FAILED
             raise ProvisionException('Not enough resources available. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.lease_id = lease_id
@@ -236,14 +242,17 @@ class ChameleonProvisioner(Provisioner):
         if status == 'ACTIVE':
             ready = True
         elif status == 'ERROR':
+            self.status = Status.FAILED
             raise ProvisionException(f'The {lease_name} lease failed during provisioning.')
         elif status == 'TERMINATED':
+            self.status = Status.FAILED
             raise ProvisionException(f'The lease {lease_name} has been terminated.')
         elif status == 'STARTING':
             ready = False
         elif status == 'PENDING':
             ready = False
         else:
+            self.status = Status.FAILED
             raise ProvisionException(f'Lease in invalid state: {status}')
         return ready
 
@@ -269,10 +278,13 @@ class ChameleonProvisioner(Provisioner):
         elif status == 'STARTING':
             ready = False
         elif status == 'TERMINATED':
+            self.status = Status.FAILED
             raise ProvisionException(f'Server {server_name} instance was terminated')
         elif status == 'ERROR':
+            self.status = Status.FAILED
             raise ProvisionException(f'Server {server_name} instance could not be created')
         else:
+            self.status = Status.FAILED
             raise ProvisionException(f'Server {server_name} in invalid state {status}')
         return ready
 
@@ -294,6 +306,7 @@ class ChameleonProvisioner(Provisioner):
         LOGGER.info(f'Allocating a floating ip address\n{cmd}')
         ip_addresses, err = capture_shell(cmd)
         if 'ERROR' in err:
+            self.status = Status.FAILED
             raise ProvisionException('Not enough floating IPs available. Try rerunning later.')
         self.ip_addresses = ip_addresses
 
@@ -312,6 +325,7 @@ class ChameleonProvisioner(Provisioner):
         LOGGER.info(f'Reserving lease for floating ip addresses\n{cmd}')
         lease_out, err = capture_shell(cmd)
         if 'ERROR: Not enough floating IPs available' in err:
+            self.status = Status.FAILED
             raise ProvisionException('Not enough floating IPs available. Try rerunning later.')
         lease_id = lease_out.split('\n')[1]
         self.ip_lease_id = lease_id
@@ -357,6 +371,7 @@ class ChameleonProvisioner(Provisioner):
                    f'{self.node_info["cpu"]}',
                    (' with GPU' if self.node_info["gpu"] else ''))
             print(msg)
+            self.status = Status.FAILED
             raise ProvisionException(msg)
         # if multiple images are compatible, select the first one
         image = image.split('\n')[0]
@@ -488,6 +503,7 @@ class ChameleonProvisioner(Provisioner):
         """
 
         try:
+            self.status = Status.SETTINGUP
             self.select_image()
             self.reserve_lease()
             #self.reserve_ip()
@@ -495,8 +511,11 @@ class ChameleonProvisioner(Provisioner):
             self.create_instance()
             self.associate_ip()
             self.set_device_id()
+            self.status = Status.READY
         except ProvisionException as e:
+            self.status = Status.SHUTTINGDOWN
             self.shutdown_instance()
+            self.status = Status.FAILED
             raise
 
     def shutdown_instance(self):

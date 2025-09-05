@@ -3,7 +3,8 @@ import os
 import yaml
 import logging
 from .remote import RemoteRunner
-from .util import ProvisionException
+from .local import LocalRunner
+from .util import ProvisionException, Status
 
 CT_ROOT = '.ctcontroller'
 LOGGER = logging.getLogger("CT Controller")
@@ -57,6 +58,7 @@ class Provisioner:
         self.runner = None
         self.ip_addresses = None
         self.device_id = None
+        self.status = Status.PENDING
 
     def get_config(self, config_path: str):
         """
@@ -118,6 +120,8 @@ class Provisioner:
         """
         if ip_address is None:
             ip_address = self.ip_addresses
+        if ip_address == 'localhost':
+            return LocalRunner()
         if remote_id is None:
             remote_id = self.get('remote_id')
         if jump_ip is None:

@@ -5,6 +5,7 @@ Contains common helper functions and classes.
 import logging
 from os import environ
 from subprocess import run
+from enum import Enum
 
 LOGGER = logging.getLogger("CT Controller")
 
@@ -84,3 +85,13 @@ class ProvisionException(Exception):
             msg = ''.join(msg)
         self.msg = '\033[91m' + msg + '\033[00m'
         super().__init__(self.msg)
+
+class Status(Enum):
+    PENDING=1
+    SETTINGUP=2
+    READY=3
+    RUNNING=4
+    COMPLETE=5
+    SHUTTINGDOWN=6
+    SHUTDOWN=7
+    FAILED=8

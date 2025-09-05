@@ -11,7 +11,8 @@ from textwrap import dedent
 import validators
 from .application_manager import ApplicationManager
 from .remote import RemoteRunner
-from .util import ApplicationException, capture_shell
+from .local import LocalRunner
+from .util import ApplicationException, capture_shell, Status
 
 LOGGER = logging.getLogger("CT Controller")
 
@@ -45,12 +46,12 @@ class CameraTrapsManager(ApplicationManager):
         shutdown_job():
     """
 
-    def __init__(self, runner: RemoteRunner, log_dir: str, cfg):
+    def __init__(self, runner: RemoteRunner | LocalRunner, log_dir: str, cfg):
         """
         Constructions all necessary attributes for a CameraTrapsManager object
             
             Parameters:
-                runner (RemoteRunner): a runner attached to the target node
+                runner (RemoteRunner|LocalRunner): a runner attached to the target node
                 log_dir (str): local directory where all output related to this run should be stored
                 cfg (dict): a dictionary of configuration parameters and values passed from the
                             Controller object
@@ -96,12 +97,14 @@ class CameraTrapsManager(ApplicationManager):
                     elif self.input_dataset_type == 'video':
                         fil.write('source_video_url: {self.input}\n')
                 else:
+                    self.status = Status.FAILED
                     raise ApplicationException(f"Input dataset source: {self.input} is not a valid url")
             if self.mode == 'video_simulation':
                 fil.write(f'motion_video_device: {self.get_video_device()}\n')
             if self.advanced:
                 for key, val in self.advanced.items():
                     fil.write(f'{key}: {val}\n')
+            fil.write(f'inference_server: false\n')
             if self.node_type == 'Jetson':
                 fil.write('image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n')
                 fil.write('power_monitor_backend: jtop\n')
@@ -147,6 +150,7 @@ class CameraTrapsManager(ApplicationManager):
             for dev in v4l2_dev:
                 if _is_v4l2loopback_available(dev):
                     return dev
+        self.status = Status.FAILED
         raise ApplicationException(f'Video simulation mode selected but no compatible video devices found on remote server {self.runner.ip_address}')
 
     def setup_app(self):
@@ -157,6 +161,7 @@ class CameraTrapsManager(ApplicationManager):
             3. Runs the custom installer
         """
 
+        self.status = Status.SETTINGUP
         # restart jtop service if running on a Jetson
         if self.node_type == 'Jetson':
             self.runner.run('systemctl restart jtop.service')
@@ -209,7 +214,9 @@ class CameraTrapsManager(ApplicationManager):
 
         outlog = f'{self.log_dir}/ct_out.log'
         errlog = f'{self.log_dir}/ct_err.log'
+        self.status = Status.RUNNING
         self.runner.tracked_run(cmd, outlog, errlog)
+        self.status = Status.COMPLETE
 
     def docker_compose_down(self):
         """
@@ -227,22 +234,27 @@ class CameraTrapsManager(ApplicationManager):
 
 
     def copy_results(self):
+        self.status = 'transferring data'
         try:
             self.runner.get(self.run_dir, self.log_dir)
         except FileNotFoundError:
+            self.status = Status.FAILED
             raise ApplicationException(f'Run directory {self.run_dir} could not be found on remote server {self.runner.ip_address}')
         except OSError:
-            raise ApplicationException(f'Copy of run directory {self.run_dir} from remote server {self.runner.ip_address} failed')
+            self.status = Status.FAILED
+            raise ApplicationException(f'Copy of run directory {self.run_dir} from {self.runner.ip_address} to {self.log_dir} failed')
 
     def run_job(self):
         """Setup the remote run directory and launch camera traps"""
 
         self.setup_app()
         self.docker_compose_up()
-        self.copy_results()
 
     def shutdown_job(self):
         """Shutdown the camera traps container and cleanup the run directory"""
 
+        self.status = Status.SHUTTINGDOWN
         self.docker_compose_down()
+        self.copy_results()
         self.remove_app()
+        self.status = Status.SHUTDOWN
