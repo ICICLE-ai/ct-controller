@@ -4,7 +4,7 @@ IMAGE=tapis/ctcontroller:demo
 CONTAINER=ctcontroller
 PORT=8080
 
-#docker pull $IMAGE
+docker pull $IMAGE
 
 # check if container already exists
 if docker container inspect "$CONTAINER" >/dev/null 2>&1; then
