@@ -1,6 +1,8 @@
 #!/bin/bash
 
 chmod +x ./systemd/start-ctcontroller-container.sh
+sudo mkdir -p /var/lib/ctcontroller/output /var/lib/ctcontroller/models
+sudo cp ./systemd/env /var/lib/ctcontroller/
 sudo cp ./systemd/ctcontroller.service /etc/systemd/system
 sudo cp ./systemd/start-ctcontroller-container.sh /usr/bin/
 

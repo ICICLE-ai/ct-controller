@@ -14,7 +14,6 @@ class LocalProvisioner(Provisioner):
     A subclass of the Provisioner class to handle the simple case of running on the hardware that ctcontroller is running on.
 
     Attributes:
-        lock_file (str): name of the lock file used to reserve a node
         available_nodes (dict): a dictionary of nodes accessible at the TACC site
         remote_id (str): username to be used on the remote server
 
@@ -29,21 +28,11 @@ class LocalProvisioner(Provisioner):
         self.site = cfg['target_site']
         self.user = cfg['requesting_user']
         self.ip_addresses = 'localhost'
-        self.lock_file = os.path.expanduser('~/ctcontroller.lock')
+        self.allow_attaching = True
 
+    # in local/demo environment, do not block on running instance but always continue
     def provision_instance(self):
-        self.status = Status.SETTINGUP
-        if os.path.exists(self.lock_file):
-            self.status = Status.FAILED
-            raise ProvisionException('Localhost already provisioned')
-        else:
-            with open(self.lock_file, 'w') as f:
-                pass
         self.status = Status.READY
 
     def shutdown_instance(self):
-        if os.path.exists(self.lock_file):
-            os.remove(self.lock_file)
-        else:
-            LOGGER.WARNING('Cannot deprovision localhost, it was never provisioned')
         self.status = Status.SHUTDOWN

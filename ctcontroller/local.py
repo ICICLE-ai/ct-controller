@@ -71,7 +71,7 @@ class LocalRunner():
 
         LOGGER.info(f'Running {cmd}')
         output = shell_run(cmd, capture_output=True, shell=True)
-        return output.stdout.decode('utf-8').strip()
+        return output.stdout.decode('utf-8').strip()# + '\n' + output.stderr.decode('utf-8').strip()
 
     def tracked_run(self, cmd: str, outlog: str, errlog: str):
         """

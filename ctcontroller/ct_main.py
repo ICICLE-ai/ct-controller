@@ -9,8 +9,8 @@ from .util import ApplicationException, ProvisionException
 
 LOGGER = logging.getLogger("CT Controller")
 
-def setup():
-    controller = Controller()
+def setup(options: dict=None, job_local_log=False):
+    controller = Controller(options)
     if controller.provisioner_config['target_site'].startswith('CHI'):
         from .chameleon_provisioner import ChameleonProvisioner as SiteProvisioner  # pylint: disable=import-outside-toplevel
     elif controller.provisioner_config['target_site'] == 'TACC':
@@ -26,9 +26,14 @@ def setup():
         raise
 
     try:
+        if job_local_log:
+            app_log_dir = f'{controller.log_directory}/{controller.application_config["job_id"]}'
+        else:
+            app_log_dir = controller.log_directory
         ctmanager = AppManager(provisioner.get_remote_runner(),
-                               log_dir=controller.log_directory,
-                               cfg=controller.application_config)
+                               log_dir=app_log_dir,
+                               cfg=controller.application_config,
+                               allow_attaching=provisioner.allow_attaching)
     except ApplicationException as e:
         LOGGER.exception(e.msg)
         ctmanager.shutdown_job()

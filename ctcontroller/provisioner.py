@@ -59,6 +59,7 @@ class Provisioner:
         self.ip_addresses = None
         self.device_id = None
         self.status = Status.PENDING
+        self.allow_attaching = False
 
     def get_config(self, config_path: str):
         """
@@ -133,6 +134,9 @@ class Provisioner:
         if httpproxy is None:
             httpproxy = self.get('httpproxy')
         return RemoteRunner(ip_address, remote_id, self.ssh_key['path'], device_id=self.device_id, jump_host=jump_ip, jump_pkey_path=jump_key, jump_user=jump_id, httpproxy=httpproxy)
+
+    def get_status(self):
+        return self.status
 
     #def connect(self):
     #    self.runner = self.get_remote_runner()

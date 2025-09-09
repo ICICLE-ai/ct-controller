@@ -5,11 +5,12 @@ Contains common helper functions and classes.
 import logging
 from os import environ
 from subprocess import run
+from datetime import datetime
 from enum import Enum
 
 LOGGER = logging.getLogger("CT Controller")
 
-def setup_logger(log_dir: str):
+def setup_logger(log_dir: str, mode: str):
     """Sets up a logger."""
 
     log_level = environ.get("CT_CONTROLLER_LOG_LEVEL", "INFO")
@@ -26,7 +27,10 @@ def setup_logger(log_dir: str):
         formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s '
                 '[in %(pathname)s:%(lineno)d]')
         handler = logging.StreamHandler()
-        fileHandler = logging.FileHandler(f"{log_dir}/run.log")
+        if mode == 'demo':
+            fileHandler = logging.handlers.RotatingFileHandler(f'{log_dir}/run.log', maxBytes=50000000, backupCount=10)
+        else:
+            fileHandler = logging.FileHandler(f"{log_dir}/run.log")
         handler.setFormatter(formatter)
         fileHandler.setFormatter(formatter)
         LOGGER.addHandler(handler)
@@ -95,3 +99,4 @@ class Status(Enum):
     SHUTTINGDOWN=6
     SHUTDOWN=7
     FAILED=8
+    SAVING=9
