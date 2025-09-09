@@ -11,6 +11,7 @@ import shutil
 import filecmp
 import tempfile
 from textwrap import dedent
+from pathlib import Path
 import validators
 from .application_manager import ApplicationManager
 from .remote import RemoteRunner
@@ -78,10 +79,16 @@ class CameraTrapsManager(ApplicationManager):
         self.keywords = ['tapis', 'icicle', 'iud2i']
 
     def parse_model(self, model):
-        if '/' in model:
+        if '.pt' in model:
             return 'file'
         else:
             return 'id'
+
+    def check_cache(self, model):
+        if hasattr(self, 'model_cache') and self.model_cache:
+            cached_model = Path(self.model_cache) / model
+            if cached_model.is_file():
+                return cached_model
 
     def generate_cfg_file(self):
         """Generates a config file and copies it to the remote node that will run camera traps"""
@@ -100,6 +107,9 @@ class CameraTrapsManager(ApplicationManager):
             cfg_str += f'use_gpu_in_scoring: {self.gpu}\n'
         if self.model:
             if self.parse_model(self.model) == 'file':
+                cached_model = self.check_cache(self.model)
+                if cached_model:
+                    self.model = cached_model
                 cfg_str += f'local_model_path: {self.model}\n'
             else:
                 cfg_str += f'model_id: {self.model}\n'
@@ -224,6 +234,11 @@ class CameraTrapsManager(ApplicationManager):
             self.model = new_model
             changed = True
 
+        new_model_cache = cfg.get('model_cache')
+        if not hasattr(self, 'model_cache') or self.model_cache != new_model_cache:
+            self.model_cache = new_model_cache
+            changed = True
+
         new_input = cfg.get('input')
         if not hasattr(self, 'input') or self.input != new_input:
             self.input = new_input
@@ -275,12 +290,14 @@ class CameraTrapsManager(ApplicationManager):
 
     def setup_environment(self):
         # Prune images/containers and pull the latest images
+        self.status = Status.SETTINGUP
         pull_cmd = dedent(f"""
         cd {self.run_dir}
         docker compose pull
         docker pull tapis/powerjoular
         """)
         self.runner.run(pull_cmd)
+        self.status = Status.READY
 
     def configure_app(self):
         # Generate config file

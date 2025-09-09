@@ -28,6 +28,7 @@ controller_vars = {
     'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
     'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
     'run_dir':           {'required': False, 'category': ['application'], 'type': str},
+    'model_cache':       {'required': False, 'category': ['application'], 'type': str},
     'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
     'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
     'mode':              {'required': False, 'category': ['application'], 'type': str},

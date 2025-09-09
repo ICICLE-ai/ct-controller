@@ -76,6 +76,7 @@ async def run_task():
 
 def run(provisioner, appmanager):
     try:
+        appmanager.setup_environment()
         appmanager.run_app()
     except ApplicationException as e:
         LOGGER.exception(e.msg)
