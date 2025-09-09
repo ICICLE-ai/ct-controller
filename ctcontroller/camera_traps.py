@@ -100,7 +100,7 @@ class CameraTrapsManager(ApplicationManager):
             cfg_str += f'use_gpu_in_scoring: {self.gpu}\n'
         if self.model:
             if self.parse_model(self.model) == 'file':
-                cfg_str += f'local_model_path: {self.model}'
+                cfg_str += f'local_model_path: {self.model}\n'
             else:
                 cfg_str += f'model_id: {self.model}\n'
         if self.input:
