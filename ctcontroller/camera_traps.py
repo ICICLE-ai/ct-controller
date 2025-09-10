@@ -279,7 +279,7 @@ class CameraTrapsManager(ApplicationManager):
                 self.remove_app()
             if self.get_application_health() == Status.PENDING:
                 self.status = Status.PENDING
-        if self.status != Status.PENDING:
+        if self.status not in [Status.PENDING, Status.COMPLETE]:
             raise ApplicationException(f'Unexpected status of {self.status.name} in application manager')
         # Prune containers on system
         prune_cmd = 'docker container prune -f; docker image prune -f'
@@ -302,6 +302,9 @@ class CameraTrapsManager(ApplicationManager):
     def configure_app(self):
         # Generate config file
         changed = self.generate_cfg_file()
+        if changed == False:
+            self.status = Status.READY
+            return
         # if job is already running and the config file is the same, do nothing
         ###
         # Install to run directory and cleanup config

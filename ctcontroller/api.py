@@ -56,6 +56,29 @@ class CTControllerState:
 
 state = CTControllerState()
 
+async def stream_app_files(fnames):
+    pos = [0] * len(fnames)
+    done = [False] * len(fnames)
+    
+    while not all(done):
+        for i, fname in enumerate(fnames):
+            if done[i]:
+                continue
+            with open(filename, "rb") as f:
+                f.seek(pos[i])
+                chunk = f.read(1024)
+                if chunk:
+                    yield chunk
+                    pos[i] += len(chunk)
+                await asyncio.sleep(loop_interval)
+
+                last_check += loop_interval
+                if last_check >= poll_interval:
+                    last_check = 0.0
+                    if state.appmanager.status != Status.RUNNING:
+                        break
+
+
 @app.post('/run', summary='Run the application')
 async def run_api():
     """
@@ -134,6 +157,8 @@ def configure(options: AppOptions=AppOptions()):
     Uses the submitted configurations to generate a config yaml and generate
     the run directory.
     """
+    if state.controller is None:
+        return {'message': 'ctcontroller needs to be started first'}
     state.controller.update_application_config(options.model_dump())
     if state.appmanager.update_config(state.controller.application_config):
         state.appmanager.configure_app()
@@ -155,13 +180,34 @@ def config():
     """
     return FileResponse(path=f'{state.appmanager.log_dir}/ct_controller.yml', media_type='application/x-yaml', filename='config.yaml')
 
-@app.get('/dl_controller_logs', summary='Get controller logs')
+@app.get('/controller_logs/download', summary='Get controller logs')
 def dl_controller_logs():
     """
     Downloads the logs of the controller.
     Note: This does not include application logs.
     """
     return FileResponse(path=f'{state.controller.log_directory}/run.log', media_type='text/plain', filename='controller.log')
+
+@app.get('/app_logs/download/stdout', summary='Get application stdout')
+def dl_app_out_logs():
+    """
+    Downloads the application logs.
+    """
+    return FileResponse(path=f'{state.appmanager.log_dir}/ct_out.log', media_type='text/plain', filename='ct_out.log')
+
+@app.get('/app_logs/download/stderr', summary='Get application stderr')
+def dl_app_err_logs():
+    """
+    Downloads the application logs.
+    """
+    return FileResponse(path=f'{state.appmanager.log_dir}/ct_err.log', media_type='text/plain', filename='ct_err.log')
+
+@app.get('/app_logs/stream', summary='Stream application output')
+def stream_app_out():
+    """
+    Streams application output as a StreamingResponse
+    """
+    return StreamingResponse(stream_app_files([f'{state.appmanager.log_dir}/ct_out.log', f'{state.appmanager.log_dir}/ct_err.log']), media_type="text/plain")
 
 @app.post('/shutdown', summary='Shuts down controller')
 def shutdown_endpoint():
