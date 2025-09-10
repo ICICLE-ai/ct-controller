@@ -153,7 +153,7 @@ def config():
     """
     Downloads the latest configuration file used to build the run directory
     """
-    return FileResponse(path=f'{state.controller.log_directory}/ct_controller.yml', media_type='application/x-yaml', filename='config.yaml')
+    return FileResponse(path=f'{state.appmanager.log_dir}/ct_controller.yml', media_type='application/x-yaml', filename='config.yaml')
 
 @app.get('/dl_controller_logs', summary='Get controller logs')
 def dl_controller_logs():
