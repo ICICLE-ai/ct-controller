@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IMAGE=tapis/ctcontroller:demo
+IMAGE=tapis/ctcontroller:latest
 CONTAINER=ctcontroller
 PORT=8080
 
