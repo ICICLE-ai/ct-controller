@@ -213,7 +213,7 @@ class CameraTrapsManager(ApplicationManager):
         out, _ = capture_shell("curl -s https://api.github.com/repos/tapis-project/camera-traps/tags")
         try:
             latest = json.loads(out)[0]['name']
-        except json.decocer.JSONDecodeError:
+        except json.decoder.JSONDecodeError:
             latest = 'latest'
 
         new_run_dir = cfg.get('run_dir', f'{self.runner.home_dir}/ct_run')
