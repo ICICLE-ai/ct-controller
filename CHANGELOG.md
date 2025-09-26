@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add support for using a jump host to connect to remote hardware.
 - Add support for video simulations.
+- Add support for running in demo, where the controller is run locally as an API server with endpoints for controlling the hardware and software.
+- Add a local runner to support demo mode
 
 ### Changed
+
+- Refactoring of CameraTrapsManager to support fine-grained control via API server endpoints
 
 ### Removed
 
