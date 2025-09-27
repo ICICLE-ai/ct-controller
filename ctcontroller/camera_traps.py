@@ -296,6 +296,7 @@ class CameraTrapsManager(ApplicationManager):
         self.status = Status.SETTINGUP
         pull_cmd = dedent(f"""
         cd {self.run_dir}
+        export DOCKER_CLIENT_TIMEOUT=30
         docker compose pull
         docker pull tapis/powerjoular
         """)
@@ -314,6 +315,7 @@ class CameraTrapsManager(ApplicationManager):
         proxy_cmd = f' -e HTTP_PROXY={self.runner.httpproxy} -e HTTPS_PROXY={self.runner.httpproxy}'
         install_cmd = dedent(f"""
         cd {self.run_dir_parent}
+        export DOCKER_CLIENT_TIMEOUT=30
         docker pull tapis/camera-traps-installer:{self.version}
         docker run --rm --user `id -u`:`id -g` -v {self.run_dir_parent}:/host/ -e INSTALL_HOST_PATH={self.run_dir_parent} -e INPUT_FILE=ct_controller.yml{proxy_cmd if self.runner.httpproxy is not None else ""} tapis/camera-traps-installer:{self.version}
         rm ct_controller.yml
@@ -353,6 +355,7 @@ class CameraTrapsManager(ApplicationManager):
         # Run docker compose up to start camera traps code
         cmd = dedent(f"""
         cd {self.run_dir}
+        export DOCKER_CLIENT_TIMEOUT=30
         docker compose pull
         docker compose up
         """)
