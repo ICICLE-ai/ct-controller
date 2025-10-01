@@ -12,43 +12,59 @@ from .util import ControllerException, setup_logger
 
 LOGGER = logging.getLogger("CT Controller")
 
+# List of possible environment variables to be used by the controller
+controller_vars = {
+    'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
+    'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
+    'node_type':         {'required': True,  'category': ['provisioner',
+                                                          'application'], 'type': str},
+    'gpu':               {'required': True,  'category': ['provisioner',
+                                                          'application'], 'type': bool},
+    'model':             {'required': False, 'category': ['application'], 'type': str},
+    'input':             {'required': False, 'category': ['application'], 'type': str},
+    'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
+    'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
+    'ct_version':        {'required': False, 'category': ['application'], 'type': str},
+    'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
+    'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
+    'run_dir':           {'required': False, 'category': ['application'], 'type': str},
+    'model_cache':       {'required': False, 'category': ['application'], 'type': str},
+    'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
+    'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
+    'mode':              {'required': False, 'category': ['application'], 'type': str},
+    'input_dataset_type':{'required': False, 'category': ['application'], 'type': str},
+    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
+}
+
 class Controller():
     """
     A class that takes user inputs to set appropriate configuration parameters to
     provision and run the camera traps application.
     """
 
-    def __init__(self):
-        # List of possible environment variables to be used by the controller
-        self.vars = {
-            'num_nodes':         {'required': True,  'category': ['provisioner'], 'type': str},
-            'target_site':       {'required': True,  'category': ['provisioner'], 'type': str},
-            'node_type':         {'required': True,  'category': ['provisioner',
-                                                                  'application'], 'type': str},
-            'gpu':               {'required': True,  'category': ['provisioner',
-                                                                  'application'], 'type': bool},
-            'model':             {'required': False, 'category': ['application'], 'type': str},
-            'input':             {'required': False, 'category': ['application'], 'type': str},
-            'ssh_key':           {'required': False, 'category': ['provisioner'], 'type': str},
-            'key_name':          {'required': False, 'category': ['provisioner'], 'type': str},
-            'ct_version':        {'required': False, 'category': ['application'], 'type': str},
-            'target_user':       {'required': False, 'category': ['provisioner'], 'type': str},
-            'output_dir':        {'required': False, 'category': ['controller'],  'type': str},
-            'job_id':            {'required': False, 'category': ['provisioner'], 'type': str},
-            'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
-            'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
-        }
+    def __init__(self, options: dict=None):
 
         provisioner_config = {}
         application_config = {}
         controller_config = {}
 
         # iterate over variables and copy values into config dictionaries
-        for key, val in self.vars.items():
+        for key, val in controller_vars.items():
             var = f'CT_CONTROLLER_{key.upper()}'
             found = False
             if var in os.environ:
                 typed_val = self.type_conversion(key, os.environ[var], val['type'])
+                found = True
+                if 'provisioner' in val['category']:
+                    provisioner_config[key] = typed_val
+                if 'application' in val['category']:
+                    application_config[key] = typed_val
+                if 'controller' in val['category']:
+                    controller_config[key] = typed_val
+
+            if options and options.get(key) is not None:
+                #typed_val = self.type_conversion(key, getattr(options, key), val['type'])
+                typed_val = options[key]
                 found = True
                 if 'provisioner' in val['category']:
                     provisioner_config[key] = typed_val
@@ -71,7 +87,7 @@ class Controller():
         self.set_user()
         self.set_job_id()
         self.set_log_dir()
-        setup_logger(self.log_directory)
+        setup_logger(self.log_directory, self.application_config.get('mode', 'simulation'))
 
     def type_conversion(self, key: str, val: str, target_type):
         """
@@ -155,7 +171,20 @@ class Controller():
             log_dir = self.controller_config['output_dir']
         else:
             log_dir = './output'
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception:
+            raise ControllerException(f'Log directory {log_dir} does not exist and could not be created.')
         if os.access(log_dir, os.W_OK):
             self.log_directory = log_dir
         else:
             raise ControllerException(f'Log directory {log_dir} is not writable.')
+
+    def update_application_config(self, options: dict):
+        if not options:
+            return 
+        print(options)
+        for key, val in options.items():
+            if key in controller_vars.keys() and 'application' in controller_vars[key]['category']:
+                if key not in self.application_config.keys() or self.application_config[key] != val:
+                    self.application_config[key] = val

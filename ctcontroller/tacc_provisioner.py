@@ -2,7 +2,7 @@
 
 import time
 import logging
-from .util import ProvisionException
+from .util import ProvisionException, Status
 from .provisioner import Provisioner
 from .remote import AuthenticationException
 
@@ -41,6 +41,7 @@ class TACCProvisioner(Provisioner):
         elif 'target_user' in cfg:
             self.remote_id = cfg['target_user']
         else:
+            self.status = Status.FAILED
             raise ProvisionException('User id on remote server was not specified.')
 
     def reserve_node(self, node_type) -> bool:
@@ -58,6 +59,7 @@ class TACCProvisioner(Provisioner):
 
         available_nodes = self.available_nodes[node_type]
         if available_nodes == []:
+            self.status = Status.FAILED
             raise ProvisionException(f'No node of type {node_type} is available')
         for node in self.available_nodes[node_type]:
             try:
@@ -65,7 +67,11 @@ class TACCProvisioner(Provisioner):
                     remote_id = self.remote_id
                 else:
                     remote_id = node['Username']
-                runner = self.get_remote_runner(ip_address=node['IP'], remote_id=remote_id)
+                runner = self.get_remote_runner(ip_address=node['IP'], remote_id=remote_id,
+                                                jump_ip=node.get('JumpHost'),
+                                                jump_id=node.get('JumpUser'),
+                                                jump_key=node.get('JumpKey'),
+                                                httpproxy=node.get('HttpProxy'))
             except AuthenticationException:
                 LOGGER.warning(f'Authentication failed while connecting to node {node}')
                 continue
@@ -78,6 +84,10 @@ class TACCProvisioner(Provisioner):
                 self.ip_addresses = node['IP']
                 self.remote_id = node['Username']
                 self.device_id = runner.device_id
+                self.jump_ip = node.get('JumpHost')
+                self.jump_id = node.get('JumpUser')
+                self.jump_key = node.get('JumpKey')
+                self.httpproxy = node.get('HttpProxy')
                 LOGGER.info(f'node {node["IP"]} available')
                 return True
             LOGGER.info(f'node {node} in use, going to next node...')
@@ -87,12 +97,16 @@ class TACCProvisioner(Provisioner):
     def provision_instance(self) -> None:
         """Periodically checks for an available node and exits once it has been reserved."""
 
+        self.status = Status.SETTINGUP
         LOGGER.info('Waiting for a node to be available')
         while not self.reserve_node(self.node_type):
             LOGGER.info('.')
             time.sleep(3)
+        self.status = Status.READY
 
     def shutdown_instance(self) -> None:
         """Deprovisions the node by deleting the lock file."""
 
+        self.status = Status.SHUTTINGDOWN
         self.get_remote_runner().delete_file(self.lock_file)
+        self.status = Status.SHUTDOWN

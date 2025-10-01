@@ -6,6 +6,8 @@ The `ctcontroller` tool can be used to manage the provisioning and releasing of 
 - CI4AI
 - Animal Ecology
 
+---
+
 # How-To Guide
 
 ## Installation
@@ -49,7 +51,11 @@ docker pull tapis/ctcontroller
 
 ## Running
 
-### Source/pip
+### Simulation mode
+
+Simulation mode is designed to be allow provisioning of a variety of remote hardware from a central location and the deployment and management of applications to aide in testing of an application on different hardware.
+
+#### Source/pip
 
 If installation is via pip or source, export the variables described [below](#control-variables) to your path. For instance, to run on a non-GPU x86 node at TACC you might export:
 ```
@@ -67,7 +73,7 @@ Ensure that the output directory exists and is writable. Then, import and run th
 python -c "import ctcontroller; ctcontroller.run()"
 ```
 
-### Docker image
+#### Docker image
 
 If using the docker image, the environment variables should be passed via the command-line to the docker image. Also note that any external files will need to be mounted and paths. In particular, if you would like to save any of the output files make sure that the output directory is set to a path that will be available after the container shuts down. For instance, the same non-GPU x86 node at TACC might be run with:
 
@@ -84,6 +90,34 @@ docker run \
 -e CT_CONTROLLER_OUTPUT_DIR=/output \
 tapis/ctcontroller
 ```
+
+#### Demo mode
+
+Demo mode is used to run and control an application running on the machine where `ctcontroller` is deployed. It creates an API server that listens to web requests, useful for deploying an application in the field. This mode runs requires running ctcontroller from a docker image.
+
+#### Running as a service
+The `install.sh` script will create and enable a systemd service that will run the `ctcontroller` in demo mode.
+Note that this will only work on Linux machines.
+After running `install.sh`, restart your machine or run `systemctl start ctcontroller.service` to start the service. You should then be able to access the server docs from `http://localhost:8080/docs`.
+
+Check the server documentation for detailed documentation on the API endpoints, but broadly, you there are endpoints to:
+1. startup and shutdown the server
+2. start and stop the application
+3. check the health of the hardware and application
+4. download logs
+
+#### Running manually
+
+If you are unable or do not want to create a systemd service, you can manually launch the API server by running:
+
+```
+./systemd/start-ctcontroller-container.sh
+docker start -a ctcontroller
+```
+
+Then to stop run `docker rm -f ctcontroller`.
+
+---
 
 # Explanation
 
@@ -119,12 +153,16 @@ The Application Controller handles the setup, running, shutting down, and cleani
 | `CT_CONTROLLER_CT_VERSION` | version of the application to be run | No |
 | `CT_CONTROLLER_TARGET_USER` | username to be used on target system | No |
 | `CT_CONTROLLER_OUTPUT_DIR` | path to output directory | No |
+| `CT_CONTROLLER_RUN_DIR` | path to run directory | No |
+| `CT_CONTROLLER_MODEL_CACHE` | path to model cache (for demo mode) | No |
 | `CT_CONTROLLER_JOB_ID` | unique job ID to be used for provisioning hardware | No |
 | `CT_CONTROLLER_ADVANCED_APP_VARS` | variables to be passed to application controller | No |
+| `CT_CONTROLLER_MODE` | run mode (simulation or demo) | No |
+| `CT_CONTROLLER_INPUT_DATASET_TYPE` | input dataset type (image or video) | No |
 
 ## Configuration File
 
-The path to the configuration file is specified through the environment variable `CT_CONTROLLER_CONFIG_PATH`. `ctcontroller` expects this file to be a YAML file. [sample_config.yml](sample_config.yml) is a sample config file. Configuration files can be used to specify target host nodes to be provisioned, service account credentials, and authorized users.
+The path to the configuration file is specified through the environment variable `CT_CONTROLLER_CONFIG_PATH`. When running in simulation mode, `ctcontroller` expects this file to be a YAML file. [sample_config.yml](sample_config.yml) is a sample config file. Configuration files can be used to specify target host nodes to be provisioned, service account credentials, and authorized users.
 
 The configuration file consists of three parts: 
 1. A description of the systems that can be accessed. Each system is given a unique identifier and contains the following attributes:

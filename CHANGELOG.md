@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2] 2024-12-10
+## [0.3] 2025-10-01
+
+### Added
+- Add support for using a jump host to connect to remote hardware.
+- Add support for video simulations.
+- Add support for running in demo, where the controller is run locally as an API server with endpoints for controlling the hardware and software.
+- Add a local runner to support demo mode
+
+### Changed
+
+- Refactoring of CameraTrapsManager to support fine-grained control via API server endpoints
+
+### Removed
+
+## [0.2] 2025-04-29
 
 ### Added
 - This changelog has been created to track changes.
@@ -18,8 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `model_id` instead of `model_type`.
 - Specify a 6 hour lease for Chameleon hardware, rather than the default 1 day.
 - Use ad-hoc floating IPs rather than floating IP reservation leases.
-
-### Changed
 
 ### Removed
 

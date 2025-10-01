@@ -9,6 +9,56 @@ from .util import ApplicationException, ProvisionException
 
 LOGGER = logging.getLogger("CT Controller")
 
+def setup(options: dict=None, job_local_log=False):
+    controller = Controller(options)
+    if controller.provisioner_config['target_site'].startswith('CHI'):
+        from .chameleon_provisioner import ChameleonProvisioner as SiteProvisioner  # pylint: disable=import-outside-toplevel
+    elif controller.provisioner_config['target_site'] == 'TACC':
+        from .tacc_provisioner import TACCProvisioner as SiteProvisioner # pylint: disable=import-outside-toplevel
+    elif controller.provisioner_config['target_site'] == 'local':
+        from .local_provisioner import LocalProvisioner as SiteProvisioner # pylint: disable=import-outside-toplevel
+
+    try:
+        provisioner = SiteProvisioner(controller.provisioner_config)
+        provisioner.provision_instance()
+    except ProvisionException as e:
+        LOGGER.exception(e.msg)
+        raise
+
+    try:
+        if job_local_log:
+            app_log_dir = f'{controller.log_directory}/{controller.application_config["job_id"]}'
+        else:
+            app_log_dir = controller.log_directory
+        ctmanager = AppManager(provisioner.get_remote_runner(),
+                               log_dir=app_log_dir,
+                               cfg=controller.application_config,
+                               allow_attaching=provisioner.allow_attaching)
+    except ApplicationException as e:
+        LOGGER.exception(e.msg)
+        ctmanager.shutdown_job()
+        provisioner.shutdown_instance()
+        raise
+    return controller, provisioner, ctmanager
+
+def run(provisioner, ctmanager):
+    try:
+        ctmanager.run_job()
+    except ApplicationException as e:
+        LOGGER.exception(e.msg)
+        ctmanager.shutdown_job()
+        provisioner.shutdown_instance()
+        raise
+
+def shutdown(provisioner, ctmanager):
+    try:
+        ctmanager.shutdown_job()
+    except ApplicationException as e:
+        provisioner.shutdown_instance()
+        raise
+    else:
+        provisioner.shutdown_instance()
+
 def main():
     """
     Initiates the controller, provisioner, and application manager.
@@ -22,32 +72,9 @@ def main():
     exits.
     """
 
-    controller = Controller()
-    if controller.provisioner_config['target_site'].startswith('CHI'):
-        from .chameleon_provisioner import ChameleonProvisioner as SiteProvisioner  # pylint: disable=import-outside-toplevel
-    elif controller.provisioner_config['target_site'] == 'TACC':
-        from .tacc_provisioner import TACCProvisioner as SiteProvisioner # pylint: disable=import-outside-toplevel
+    controller, provisioner, ctmanager = setup()
+    run(provisioner, ctmanager)
+    shutdown(provisioner, ctmanager)
 
-    try:
-        provisioner = SiteProvisioner(controller.provisioner_config)
-        provisioner.provision_instance()
-    except ProvisionException as e:
-        LOGGER.exception(e.msg)
-        raise
-
-    try:
-        ctmanager = AppManager(provisioner.get_remote_runner(),
-                               log_dir=controller.log_directory,
-                               cfg=controller.application_config)
-        ctmanager.run_job()
-        ctmanager.shutdown_job()
-    except ApplicationException as e:
-        LOGGER.exception(e.msg)
-        ctmanager.shutdown_job()
-        provisioner.shutdown_instance()
-        raise
-    else:
-        provisioner.shutdown_instance()
-
-if __name__ == '__main__':
-    main()
+#if __name__ == '__main__':
+#    main()

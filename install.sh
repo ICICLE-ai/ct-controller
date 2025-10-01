@@ -1,0 +1,13 @@
+#!/bin/bash
+
+chmod +x ./systemd/start-ctcontroller-container.sh
+sudo mkdir -p /var/lib/ctcontroller/output /var/lib/ctcontroller/models
+sudo cp ./systemd/env /var/lib/ctcontroller/
+sudo cp ./systemd/ctcontroller.service /etc/systemd/system
+sudo cp ./systemd/start-ctcontroller-container.sh /usr/bin/
+
+sudo systemctl daemon-reload
+
+sudo systemctl enable ctcontroller
+
+echo "Reboot your machine or run \"sudo systemctl start ctcontroller\" to start the ctcontroller service"

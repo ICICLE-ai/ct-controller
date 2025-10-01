@@ -1,0 +1,14 @@
+[Unit]
+Description=CTController service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+ExecStartPre=/usr/bin/start-ctcontroller-container.sh
+ExecStart=/usr/bin/docker start -a ctcontroller
+ExecStop=/usr/bin/docker rm -f ctcontroller
+
+[Install]
+WantedBy=multi-user.target

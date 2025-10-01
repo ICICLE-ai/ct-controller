@@ -3,7 +3,8 @@ import os
 import yaml
 import logging
 from .remote import RemoteRunner
-from .util import ProvisionException
+from .local import LocalRunner
+from .util import ProvisionException, Status
 
 CT_ROOT = '.ctcontroller'
 LOGGER = logging.getLogger("CT Controller")
@@ -57,6 +58,8 @@ class Provisioner:
         self.runner = None
         self.ip_addresses = None
         self.device_id = None
+        self.status = Status.PENDING
+        self.allow_attaching = False
 
     def get_config(self, config_path: str):
         """
@@ -104,7 +107,7 @@ class Provisioner:
         """Returns the value of prop or None if it is not defined."""
         return getattr(self, prop, None)
 
-    def get_remote_runner(self, ip_address=None, remote_id=None):
+    def get_remote_runner(self, ip_address=None, remote_id=None, jump_ip=None, jump_id=None, jump_key=None, httpproxy=None):
         """
         Initialize a RemoteRunner connected to the provisioned server at the specified ip_address
         logged in with the specified username id.
@@ -118,9 +121,22 @@ class Provisioner:
         """
         if ip_address is None:
             ip_address = self.ip_addresses
+        if ip_address == 'localhost':
+            return LocalRunner()
         if remote_id is None:
             remote_id = self.get('remote_id')
-        return RemoteRunner(ip_address, remote_id, self.ssh_key['path'], self.device_id)
+        if jump_ip is None:
+            jump_ip = self.get('jump_ip')
+        if jump_id is None:
+            jump_id = self.get('jump_id')
+        if jump_key is None:
+            jump_key = self.get('jump_key')
+        if httpproxy is None:
+            httpproxy = self.get('httpproxy')
+        return RemoteRunner(ip_address, remote_id, self.ssh_key['path'], device_id=self.device_id, jump_host=jump_ip, jump_pkey_path=jump_key, jump_user=jump_id, httpproxy=httpproxy)
+
+    def get_status(self):
+        return self.status
 
     #def connect(self):
     #    self.runner = self.get_remote_runner()

@@ -1,0 +1,6 @@
+CT_CONTROLLER_TARGET_SITE=local
+CT_CONTROLLER_NUM_NODES=1
+CT_CONTROLLER_CONFIG_PATH=
+CT_CONTROLLER_RUN_DIR=/var/lib/ctcontroller/run_dir
+CT_CONTROLLER_OUTPUT_DIR=/var/lib/ctcontroller/output
+CT_CONTROLLER_MODEL_CACHE=/var/lib/ctcontroller/models
