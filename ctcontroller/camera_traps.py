@@ -126,9 +126,9 @@ class CameraTrapsManager(ApplicationManager):
         if self.mode == 'video_simulation':
             cfg_str += f'motion_video_device: {self.get_video_device()}\n'
         if self.advanced:
+            self.advanced.setdefault('inference_server', 'false')
             for key, val in self.advanced.items():
                 cfg_str += f'{key}: {val}\n'
-        cfg_str += f'inference_server: false\n'
         if self.node_type == 'Jetson':
             cfg_str += 'image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n'
             cfg_str += 'power_monitor_backend: jtop\n'

@@ -1,5 +1,7 @@
 # ctcontroller
 
+[![PyTest](https://github.com/ICICLE-ai/ml_workbench_test_suite/actions/workflows/pytest.yml/badge.svg)](https://github.com/ICICLE-ai/ml_workbench_test_suite/actions/workflows/pytest.yml)
+
 The `ctcontroller` tool can be used to manage the provisioning and releasing of edge hardware as well as running and shutting down the camera-traps application.
 
 
