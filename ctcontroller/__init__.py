@@ -7,7 +7,7 @@ This package exposes:
 
 from .ct_main import main
 
-VERSION = "0.3"
+VERSION = "0.3.1"
 
 def run():
     """Calls the ctcontroller main function"""

@@ -59,12 +59,15 @@ state = CTControllerState()
 async def stream_app_files(fnames):
     pos = [0] * len(fnames)
     done = [False] * len(fnames)
+    loop_interval = 1
+    poll_interval = 10
+    last_check = 0.0
     
     while not all(done):
         for i, fname in enumerate(fnames):
             if done[i]:
                 continue
-            with open(filename, "rb") as f:
+            with open(fname, "rb") as f:
                 f.seek(pos[i])
                 chunk = f.read(1024)
                 if chunk:
