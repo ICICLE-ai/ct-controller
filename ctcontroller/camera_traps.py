@@ -169,6 +169,8 @@ class CameraTrapsManager(ApplicationManager):
                 raise ApplicationException(f"Input dataset source: {self.input} is not a valid url")
         if self.mode == 'video_simulation':
             cfg_str += f'motion_video_device: {self.get_video_device()}\n'
+        elif self.mode == 'demo':
+            cfg_str += f'motion_video_device: {self.get_camera_device()}\n'
         if self.advanced:
             self.advanced.setdefault('inference_server', 'false')
             for key, val in self.advanced.items():
@@ -209,6 +211,31 @@ class CameraTrapsManager(ApplicationManager):
 
         self.runner.copy_file(fpath, f'{rmt_pth}/ct_controller.yml')
 
+
+    def get_camera_device(self):
+        """
+        Determines which video device, if any, corresponds to a webcam
+        """
+
+        LOGGER.info('Looking for camera device')
+        dev_regex = re.compile(r'(/dev/video\d+)')
+        v4l2devices = []
+        cmd = 'v4l2-ctl --list-devices'
+        out = self.runner.run(cmd)
+        all_devices = dev_regex.findall(out)
+        out = self.runner.run('lsusb')
+        usb_devices = out.splitlines()
+        for device in usb_devices:
+            if 'camera' in device.lower() or 'webcam' in device.lower():
+                for video_device in all_devices:
+                    try:
+                        video_dev_info = self.runner.run(f'udevadm info --name={video_device}')
+                        if 'ID_USB_DRIVER=uvcvideo' in video_dev_info:
+                            LOGGER.info(f'Found usb camera: {video_device}')
+                            return video_device
+                    except subprocess.CalledProcessError:
+                        continue
+        LOGGER.warning(f'Could not find camera.')
 
     def get_video_device(self):
         """
