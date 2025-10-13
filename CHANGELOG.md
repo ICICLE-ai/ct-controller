@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Add client notebook for api server
+- Enable caching of model files specified via model id
+
+### Fixed
+- Fix bug for streaming of application logs
+- Fix bug where the user specified value for inference server is ignored
+
 ## [0.3] 2025-10-01
 
 ### Added
