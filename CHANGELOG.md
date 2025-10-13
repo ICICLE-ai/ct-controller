@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add client notebook for api server
 - Enable caching of model files specified via model id
+- Autodetect webcam devices in demo mode
 
 ### Fixed
 - Fix bug for streaming of application logs

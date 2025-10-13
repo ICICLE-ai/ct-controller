@@ -228,13 +228,12 @@ class CameraTrapsManager(ApplicationManager):
         for device in usb_devices:
             if 'camera' in device.lower() or 'webcam' in device.lower():
                 for video_device in all_devices:
-                    try:
-                        video_dev_info = self.runner.run(f'udevadm info --name={video_device}')
-                        if 'ID_USB_DRIVER=uvcvideo' in video_dev_info:
+                    video_dev_path = f'/sys/class/video4linux/{os.path.basename(video_device)}/device/uevent'
+                    if self.runner.file_exists(video_dev_path):
+                        video_dev_info = self.runner.run(f'grep -i driver {video_dev_path}')
+                        if 'DRIVER=uvcvideo' in video_dev_info:
                             LOGGER.info(f'Found usb camera: {video_device}')
                             return video_device
-                    except subprocess.CalledProcessError:
-                        continue
         LOGGER.warning(f'Could not find camera.')
 
     def get_video_device(self):
