@@ -10,6 +10,8 @@ import json
 import shutil
 import filecmp
 import tempfile
+import lmdb
+from uuid import uuid4
 from textwrap import dedent
 from pathlib import Path
 import validators
@@ -85,10 +87,49 @@ class CameraTrapsManager(ApplicationManager):
             return 'id'
 
     def check_cache(self, model):
-        if hasattr(self, 'model_cache') and self.model_cache:
-            cached_model = Path(self.model_cache) / model
-            if cached_model.is_file():
-                return cached_model
+        if self.has_model_cache:
+            db_path = self.model_cache / 'db'
+            cache_db = lmdb.open(str(db_path))
+            with cache_db.begin() as txn:
+                model_name = txn.get(model.encode())
+            if model_name is not None:
+                cached_model = self.model_cache / model_name.decode()
+                if cached_model.is_file():
+                    LOGGER.info(f'model {model} retrieved from cache.')
+                    return cached_model
+                else:
+                    raise ApplicationException(f'Model cache corrupted. {model} was added to the cache but could not be found.')
+            else:
+                LOGGER.info(f'model {model} not found in cache')
+
+    def update_cache(self, model_path: Path, model_id=None):
+        if self.has_model_cache:
+            db_path = self.model_cache / 'db'
+            cache_db = lmdb.open(str(db_path))
+            # already using cached model
+            if self.model_cache.resolve() in model_path.resolve().parents:
+                if not model_path.is_file():
+                    if model_id:
+                        LOGGER.warning(f'{model_path} could not be found.')
+                        return 'model not added, could not be found.'
+                    else:
+                        raise ApplicationException(f'{model_path} could not be found.')
+            # if model_id is not set, use filename
+            if model_id is None:
+                model_id = model_path.name
+            if self.check_cache(model_id):
+                return f'model "{model_id}" already in cache'
+
+            # generate uuid
+            model_uuid = uuid4()
+            model_name = f'{model_uuid}.pt'
+            # Copy file to model cache
+            shutil.copy(model_path, self.model_cache / model_name)
+            # Update cache db
+            with cache_db.begin(write=True) as txn:
+                txn.put(model_id.encode(), model_name.encode())
+            LOGGER.info(f'Added model {model_id} to cache')
+            return f'added model "{model_id}" to cache'
 
     def generate_cfg_file(self):
         """Generates a config file and copies it to the remote node that will run camera traps"""
@@ -106,13 +147,16 @@ class CameraTrapsManager(ApplicationManager):
         if self.gpu:
             cfg_str += f'use_gpu_in_scoring: {self.gpu}\n'
         if self.model:
-            if self.parse_model(self.model) == 'file':
-                cached_model = self.check_cache(self.model)
-                if cached_model:
-                    self.model = cached_model
+            cached_model = self.check_cache(self.model)
+            if cached_model:
+                self.model = cached_model
                 cfg_str += f'local_model_path: {self.model}\n'
             else:
-                cfg_str += f'model_id: {self.model}\n'
+                if self.parse_model(self.model) == 'id':
+                    cfg_str += f'model_id: {self.model}\n'
+                else:
+                    self.update_cache(Path(self.model))
+                    cfg_str += f'local_model_path: {self.model}\n'
         if self.input:
             if validators.url(self.input):
                 if self.input_dataset_type == 'image':
@@ -239,7 +283,8 @@ class CameraTrapsManager(ApplicationManager):
 
         new_model_cache = cfg.get('model_cache')
         if not hasattr(self, 'model_cache') or self.model_cache != new_model_cache:
-            self.model_cache = new_model_cache
+            self.model_cache = Path(new_model_cache)
+            self.has_model_cache = True
             changed = True
 
         new_input = cfg.get('input')
@@ -322,6 +367,10 @@ class CameraTrapsManager(ApplicationManager):
         """)
         out = self.runner.run(install_cmd)
         LOGGER.info(out)
+        if self.has_model_cache:
+            model_path = Path(self.run_dir) / 'md_v5a.0.0.pt'
+            if model_path.is_file():
+                self.update_cache(model_path=model_path, model_id=self.model)
         self.status = Status.READY
 
     def setup_app(self):

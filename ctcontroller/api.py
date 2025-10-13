@@ -1,11 +1,14 @@
 import json
 import asyncio
 import logging
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, create_model, field_validator, model_validator
 from datetime import datetime, timedelta
+from tempfile import TemporaryDirectory
 from typing import Dict, Optional
+from shutil import copyfileobj
+from pathlib import Path
 from os import environ
 from .local import LocalRunner
 from .util import ApplicationException, ProvisionException, Status
@@ -211,6 +214,23 @@ def stream_app_out():
     Streams application output as a StreamingResponse
     """
     return StreamingResponse(stream_app_files([f'{state.appmanager.log_dir}/ct_out.log', f'{state.appmanager.log_dir}/ct_err.log']), media_type="text/plain")
+
+@app.post('/upload_model', summary='Upload to local model cache')
+async def upload_model(file: UploadFile = File(...)):
+    if state.get_status() != {'hardware': Status.READY.name, 'app': Status.SETTINGUP.name}:
+        return {'message': 'Startup the server to be able to upload models to the cache'}
+    try:
+        with TemporaryDirectory() as td:
+            temp_file = f'{td}/{file.filename}'
+            LOGGER.info(temp_file)
+            with open(temp_file, 'wb') as tf:
+                copyfileobj(file.file, tf)
+                temp_path = Path(temp_file)
+            await file.close()
+            status = state.appmanager.update_cache(temp_path)
+        return {'message': status}
+    except Exception as e:
+        return {'message': f'model upload failed with error: {e}'}
 
 @app.post('/shutdown', summary='Shuts down controller')
 def shutdown_endpoint():

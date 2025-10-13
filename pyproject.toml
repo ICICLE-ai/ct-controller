@@ -16,6 +16,7 @@ dependencies = [
  "pyyaml",
  "python-blazarclient @git+https://github.com/ChameleonCloud/python-blazarclient.git@chameleoncloud/xena",
  "validators",
+ "lmdb",
 ]
 
 [tool.hatch.version]
