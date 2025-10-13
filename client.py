@@ -48,9 +48,9 @@ def _(controller_ip, requests):
 
 @app.cell
 def _(controller_ip, requests):
-    def post_request(endpoint, payload={}):
+    def post_request(endpoint, payload={}, files={}):
         try:
-            response = requests.post(f"{controller_ip}/{endpoint}", json=payload)
+            response = requests.post(f"{controller_ip}/{endpoint}", json=payload, files=files)
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
@@ -152,6 +152,12 @@ def _(
 
 
 @app.cell
+def _(mo, model_input, upload_button):
+    mo.hstack([model_input, upload_button], justify='center', gap=1.5)
+    return
+
+
+@app.cell
 def _(default_config_payload, json, mo):
     config_payload_box = mo.ui.text_area(value=json.dumps(default_config_payload, indent=2), label='Configuration: ', full_width=True, rows=10)
     config_payload_box
@@ -177,12 +183,14 @@ def _(
     get_request,
     health_button,
     json,
+    model_input,
     post_request,
     run_button,
     shutdown_button,
     startup_button,
     state,
     stop_button,
+    upload_button,
 ):
     mapping = [
         (startup_button, (lambda: post_request('startup'), False)),
@@ -209,7 +217,10 @@ def _(
             else:
                 result = fhandle()
                 if isinstance(result, dict):
-                    response_output = json.dumps(result, indent=2)
+                    if 'message' in result.keys():
+                        response_output=result['message']
+                    else:
+                        response_output = json.dumps(result, indent=2)
                 elif result is None:
                     pass
                 else:
@@ -217,6 +228,10 @@ def _(
                 state['response_output'] = response_output
             response_output = state['response_output']
             counter = (counter + 1) % 2
+
+    if upload_button.value and model_input.value is not None:
+        response = post_request('upload_model', files={'file': (model_input.value[0].name, model_input.value[0].contents)})
+        response_output = response['message'] if 'message' in response else ''
     return counter, response_output
 
 
@@ -306,6 +321,13 @@ def _(controller_ip, mo, stream_app_button):
         app_stream = None
     app_stream
     return
+
+
+@app.cell
+def _(mo):
+    model_input = mo.ui.file()
+    upload_button = mo.ui.run_button(label="Upload")
+    return model_input, upload_button
 
 
 @app.cell
