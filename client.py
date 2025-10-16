@@ -82,11 +82,12 @@ def _():
     default_config_payload = {
         "gpu": "false",
         "ckn_mqtt_broker": "10.169.143.160",
-        "ct_version": "test",
-        "mode": "demo",
+        "ct_version": "latest",
         "model": "yolov5nu_ep120_bs32_lr0.001_0cfb1c03.pt",
         "inference_server": "false",
-        "detection_thresholds": "{\"animal\": \"0.7\", \"image_store_save_threshold\": \"0\", \"image_store_reduce_save_threshold\": \"0\"}"
+        "detection_thresholds": "{\"animal\": \"0.7\"}",
+        "image_store_save_threshold": "0",
+        "image_store_reduce_save_threshold": "0"
     }
     return (default_config_payload,)
 
