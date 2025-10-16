@@ -106,6 +106,7 @@ def _(mo):
     stop_button = mo.ui.run_button(label='Stop', kind='danger')
     shutdown_button = mo.ui.run_button(label='Shutdown', kind='danger')
     health_button = mo.ui.run_button(label='Check Health')
+    container_health_button = mo.ui.run_button(label='Container Health')
     dl_logs_button = mo.ui.run_button(label='Controller Logs')
     dl_config_button = mo.ui.run_button(label='Config')
     dl_app_out_button = mo.ui.run_button(label='App Stdout')
@@ -114,6 +115,7 @@ def _(mo):
     show_hide_stream_button = mo.ui.switch(label='Show Camera Stream')
     return (
         configure_button,
+        container_health_button,
         dl_app_err_button,
         dl_app_out_button,
         dl_config_button,
@@ -131,6 +133,7 @@ def _(mo):
 @app.cell
 def _(
     configure_button,
+    container_health_button,
     dl_app_err_button,
     dl_app_out_button,
     dl_config_button,
@@ -145,7 +148,7 @@ def _(
     mo.vstack(
         [
             mo.hstack([startup_button, configure_button, run_button, stop_button, shutdown_button], justify='center', gap=1.5),
-            mo.hstack([health_button, dl_logs_button, dl_config_button, dl_app_out_button, dl_app_err_button], justify='center', gap=1.5),
+            mo.hstack([health_button, container_health_button, dl_logs_button, dl_config_button, dl_app_out_button, dl_app_err_button], justify='center', gap=1.5),
         ],           
         gap=2
     )
@@ -176,6 +179,7 @@ def _():
 def _(
     config_payload,
     configure_button,
+    container_health_button,
     dl_app_err_button,
     dl_app_out_button,
     dl_config_button,
@@ -204,7 +208,7 @@ def _(
         (health_button, (lambda: get_request('health'), False)),
         (dl_app_out_button, (lambda: file_get_request('app_logs/download/stdout'), False)),
         (dl_app_err_button, (lambda: file_get_request('app_logs/download/stderr'), False)),
-        #(stream_app_button, (lambda: launch_stream(state, endpoint='app_logs/stream', response_output=response_output), True)),
+        (container_health_button, (lambda: get_request('health/containers'), False)),
     ]
     response_output = ''
     counter = 0
