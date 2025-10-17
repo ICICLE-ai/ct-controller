@@ -309,9 +309,10 @@ class CameraTrapsManager(ApplicationManager):
 
         new_model_cache = cfg.get('model_cache')
         if not hasattr(self, 'model_cache') or self.model_cache != new_model_cache:
-            self.model_cache = Path(new_model_cache)
-            self.has_model_cache = True
-            changed = True
+            if new_model_cache:
+                self.model_cache = Path(new_model_cache)
+                self.has_model_cache = True
+                changed = True
 
         new_input = cfg.get('input')
         if not hasattr(self, 'input') or self.input != new_input:
