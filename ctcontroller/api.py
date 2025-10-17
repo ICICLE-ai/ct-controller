@@ -179,6 +179,19 @@ def health():
     """
     return {'status': state.get_status()}
 
+@app.get('/health/containers', summary='Get the health of all the containers')
+def app_container_health():
+    """
+    Get the status of each of the containers of the app
+    """
+    if state.appmanager:
+        healths = state.appmanager.get_container_healths()
+        if healths:
+            return healths
+        else:
+            return {'message': 'No containers running'}
+    return {'message': 'Startup to get container healths'}
+
 @app.get('/dl_config', summary='Get config.yaml')
 def config():
     """

@@ -505,11 +505,42 @@ class CameraTrapsManager(ApplicationManager):
         if self.get_application_health() != Status.PENDING:
             self.runner.run("docker stop $(docker ps --format '{{.ID}} {{.Image}}' | grep -v 'controller' | awk '{print $1}')")
 
+    def get_ct_images(self):
+        if self.runner.file_exists(self.run_dir):
+            images = self.get_expected_images()
+            return images
+        else:
+            running, failed = self.get_running_images()
+            images = running + failed
+            return [image for keyword in self.keywords for image in images if keyword in image]
+
+    def get_container_healths(self, images=None):
+        if images is None:
+            images = self.get_ct_images()
+        if images is None:
+            return
+        healths = {}
+        for image in images:
+            container_id = self.runner.run(f"docker ps -a --filter ancestor={image} --format '{{{{.ID}}}}'")
+            if container_id is None or container_id == '':
+                LOGGER.info(f'Skipping {image} container: {container_id}')
+                continue
+            container_info = json.loads(self.runner.run(f"docker inspect {container_id}"))[0]
+            container_state = container_info.get('State', {})
+            container_status = container_state.get('Status')
+            container_health = container_state.get('Health', {}).get('Status')
+            if container_health:
+                healths[image] = container_health
+            else:
+                healths[image] = container_status
+        return healths
+
 
     def get_application_health(self):
         # If the run directory already exists, check if the app is still running or just never deleted properly
         running = True
         failed = False
+        running_images = []
         if self.runner.file_exists(self.run_dir):
             expected = self.get_expected_images()
             running_images, failed_images = self.get_running_images()
@@ -519,13 +550,21 @@ class CameraTrapsManager(ApplicationManager):
             # run directory does not exist, check for any possible containers that may interfere with camera traps
             running_images, failed_images = self.get_running_images()
             running = bool(running_images) and all(any(keyword in image for keyword in self.keywords) for image in running_images)
+            running_images = [image for keyword in self.keywords for image in running_images if keyword in image]
             failed = any(keyword in image for image in failed_images for keyword in self.keywords)
 
         # if we can see failed containers then set to failed
         if failed:
             return Status.FAILED
-        # if we can verify all containers are up, set status to running
+        # if we can verify all containers are up and healthy, set status to running
         elif running:
+            states = self.get_container_healths(running_images)
+            irreg_states = {k: v for k,v in states.items() if v != 'running'}
+            if irreg_states != {}:
+                if 'unhealthy' in irreg_states.values():
+                    return Status.FAILED
+                elif 'starting' in irreg_states.values():
+                    return Status.SETTINGUP
             return Status.RUNNING
         # if the status was set to running or failed, but we cannot verify it, set back to pending
         elif self.status == Status.FAILED or self.status == Status.RUNNING:
