@@ -157,7 +157,7 @@ class CameraTrapsManager(ApplicationManager):
                 else:
                     self.update_cache(Path(self.model))
                     cfg_str += f'local_model_path: {self.model}\n'
-        if self.input:
+        if self.input and self.input != 'example':
             if validators.url(self.input):
                 if self.input_dataset_type == 'image':
                     cfg_str += 'use_image_url: true\n'
