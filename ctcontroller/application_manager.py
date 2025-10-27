@@ -19,6 +19,7 @@ class ApplicationManager():
         self.log_dir = log_dir
         self.allow_attaching = allow_attaching
         self.has_model_cache = False
+        self.advanced = {}
         self.update_config(cfg)
         self.status = Status.PENDING
 
