@@ -178,7 +178,7 @@ class CameraTrapsManager(ApplicationManager):
         if self.node_type == 'Jetson':
             cfg_str += 'image_scoring_plugin_image: tapis/image_scoring_plugin_py_nano_3.8\n'
             cfg_str += 'power_monitor_backend: jtop\n'
-        if self.runner.cpu_arch == 'arm':
+        if self.runner.cpu_arch == 'arm' and self.node_type != 'RaspberryPi':
             cfg_str += 'power_monitor_backend: scaphandre\n'
 
         def _get_next_path(fpath):
