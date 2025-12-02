@@ -5,7 +5,7 @@ CONTAINER=ctcontroller
 PORT=8080
 
 DOCKER_CLIENT_TIMEOUT=30 docker pull $IMAGE
-CMD="docker create --privileged --name "$CONTAINER" -v /var/lib/ctcontroller:/var/lib/ctcontroller -v /var/run/docker.sock:/var/run/docker.sock -e ENV_PATH=/var/lib/ctcontroller/env -p $PORT:$PORT $IMAGE -d"
+CMD="docker create --privileged --name "$CONTAINER" -v /var/lib/ctcontroller:/var/lib/ctcontroller -v /var/run/docker.sock:/var/run/docker.sock -v /dev/bus/usb:/dev/bus/usb -e ENV_PATH=/var/lib/ctcontroller/env -p $PORT:$PORT $IMAGE -d"
 
 # check if container already exists
 if docker container inspect "$CONTAINER" >/dev/null 2>&1; then

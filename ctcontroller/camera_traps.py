@@ -86,6 +86,17 @@ class CameraTrapsManager(ApplicationManager):
         else:
             return 'id'
 
+    def list_cached_models(self):
+        if self.has_model_cache:
+            db_path = self.model_cache / 'db'
+            cache_db = lmdb.open(str(db_path))
+            models = []
+            with cache_db.begin() as txn:
+                cur = txn.cursor()
+                for key, _ in cur:
+                    models.append(key.decode())
+            return models
+
     def check_cache(self, model):
         if self.has_model_cache:
             db_path = self.model_cache / 'db'
@@ -223,17 +234,13 @@ class CameraTrapsManager(ApplicationManager):
         cmd = 'v4l2-ctl --list-devices'
         out = self.runner.run(cmd)
         all_devices = dev_regex.findall(out)
-        out = self.runner.run('lsusb')
-        usb_devices = out.splitlines()
-        for device in usb_devices:
-            if 'camera' in device.lower() or 'webcam' in device.lower():
-                for video_device in all_devices:
-                    video_dev_path = f'/sys/class/video4linux/{os.path.basename(video_device)}/device/uevent'
-                    if self.runner.file_exists(video_dev_path):
-                        video_dev_info = self.runner.run(f'grep -i driver {video_dev_path}')
-                        if 'DRIVER=uvcvideo' in video_dev_info:
-                            LOGGER.info(f'Found usb camera: {video_device}')
-                            return video_device
+        for video_device in all_devices:
+            video_dev_path = f'/sys/class/video4linux/{os.path.basename(video_device)}/device/uevent'
+            if self.runner.file_exists(video_dev_path):
+                video_dev_info = self.runner.run(f'grep -i driver {video_dev_path}')
+                if 'DRIVER=uvcvideo' in video_dev_info:
+                    LOGGER.info(f'Found camera device: {video_device}')
+                    return video_device
         LOGGER.warning(f'Could not find camera.')
 
     def get_video_device(self):

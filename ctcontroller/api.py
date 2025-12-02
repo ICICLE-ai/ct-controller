@@ -81,7 +81,7 @@ async def stream_app_files(fnames):
                 last_check += loop_interval
                 if last_check >= poll_interval:
                     last_check = 0.0
-                    if state.appmanager.status != Status.RUNNING:
+                    if state.appmanager.get_status() != Status.RUNNING:
                         break
 
 
@@ -244,6 +244,14 @@ async def upload_model(file: UploadFile = File(...)):
         return {'message': status}
     except Exception as e:
         return {'message': f'model upload failed with error: {e}'}
+
+@app.get('/list_models', summary='list all models in local cache')
+def list_models():
+    if state.get_status() != {'hardware': Status.READY.name, 'app': Status.SETTINGUP.name}:
+        return {'message': 'Startup the server to be able to upload models to the cache'}
+    models = state.appmanager.list_cached_models()
+    return {'message': '\n'.join(models)}
+
 
 @app.post('/shutdown', summary='Shuts down controller')
 def shutdown_endpoint():
