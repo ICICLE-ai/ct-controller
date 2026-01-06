@@ -1,6 +1,15 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "httpx==0.28.1",
+#     "marimo",
+#     "requests==2.32.5",
+# ]
+# ///
+
 import marimo
 
-__generated_with = "0.16.3"
+__generated_with = "0.17.7"
 app = marimo.App(width="medium")
 
 
@@ -17,7 +26,9 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(r"""# CTController Client""")
+    mo.md(r"""
+    # CTController Client
+    """)
     return
 
 
@@ -156,8 +167,8 @@ def _(
 
 
 @app.cell
-def _(mo, model_input, upload_button):
-    mo.hstack([model_input, upload_button], justify='center', gap=1.5)
+def _(list_models_button, mo, model_input, upload_button):
+    mo.hstack([model_input, upload_button, list_models_button], justify='center', gap=1.5)
     return
 
 
@@ -188,6 +199,7 @@ def _(
     get_request,
     health_button,
     json,
+    list_models_button,
     model_input,
     post_request,
     run_button,
@@ -209,6 +221,7 @@ def _(
         (dl_app_out_button, (lambda: file_get_request('app_logs/download/stdout'), False)),
         (dl_app_err_button, (lambda: file_get_request('app_logs/download/stderr'), False)),
         (container_health_button, (lambda: get_request('health/containers'), False)),
+        (list_models_button, (lambda: get_request('list_models'), False)),
     ]
     response_output = ''
     counter = 0
@@ -332,12 +345,8 @@ def _(controller_ip, mo, stream_app_button):
 def _(mo):
     model_input = mo.ui.file()
     upload_button = mo.ui.run_button(label="Upload")
-    return model_input, upload_button
-
-
-@app.cell
-def _():
-    return
+    list_models_button = mo.ui.run_button(label="List Models")
+    return list_models_button, model_input, upload_button
 
 
 if __name__ == "__main__":
