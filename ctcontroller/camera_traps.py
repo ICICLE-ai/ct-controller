@@ -174,7 +174,7 @@ class CameraTrapsManager(ApplicationManager):
                     cfg_str += 'use_image_url: true\n'
                     cfg_str += f'source_image_url: {self.input}\n'
                 elif self.input_dataset_type == 'video':
-                    cfg_str += 'source_video_url: {self.input}\n'
+                    cfg_str += f'source_video_url: {self.input}\n'
             else:
                 self.status = Status.FAILED
                 raise ApplicationException(f"Input dataset source: {self.input} is not a valid url")
