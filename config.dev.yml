@@ -1,0 +1,13 @@
+Settings:
+  AuthenticateUsers: false
+
+Users:
+  - harikeshbyrandurgagopinath
+
+local:
+  hosts:
+    - localhost
+
+jetson:
+  Name: jetson_key
+  Path: /Users/harikeshbyrandurgagopinath/.ssh/jetson_key

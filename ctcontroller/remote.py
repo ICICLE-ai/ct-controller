@@ -227,14 +227,45 @@ class RemoteRunner():
 
         LOGGER.info(f'Copying from {src} on local system to {target} on remote')
 
-        for path, _, files in os.walk(src):
+        src = os.path.abspath(src)
+        src_base = os.path.basename(src.rstrip("/"))
+        remote_root = os.path.join(target, src_base).replace("\\", "/")
+
+        try:
+            self.sftp.mkdir(target)
+        except IOError:
+            pass
+
+        try:
+            self.sftp.mkdir(remote_root)
+        except IOError:
+            pass
+
+        for path, dirs, files in os.walk(src):
+            rel_path = os.path.relpath(path, src)
+            if rel_path == ".":
+                remote_dir = remote_root
+            else:
+                remote_dir = os.path.join(remote_root, rel_path).replace("\\", "/")
+
             try:
-                self.sftp.mkdir(os.path.join(target,path))
+                self.sftp.mkdir(remote_dir)
             except IOError:
                 pass
+
+            for d in dirs:
+                subdir = os.path.join(remote_dir, d).replace("\\", "/")
+                try:
+                    self.sftp.mkdir(subdir)
+                except IOError:
+                    pass
+
             for file in files:
-                self.sftp.put(os.path.join(path,file),os.path.join(target,path,file))
-        return os.path.join(target, os.path.basename(src))
+                local_file = os.path.join(path, file)
+                remote_file = os.path.join(remote_dir, file).replace("\\", "/")
+                self.sftp.put(local_file, remote_file)
+
+        return remote_root
 
     def copy_file(self, src: str, target: str):
         """

@@ -33,7 +33,24 @@ controller_vars = {
     'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
     'mode':              {'required': False, 'category': ['application'], 'type': str},
     'input_dataset_type':{'required': False, 'category': ['application'], 'type': str},
-    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
+    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str},
+    'app_type': {'required': False, 'category': ['application'], 'type': str},
+    'local_app_dir': {'required': False, 'category': ['application'], 'type': str},
+    'container_name': {'required': False, 'category': ['application'], 'type': str},
+    'image_name': {'required': False, 'category': ['application'], 'type': str},
+
+
+    'jetson_ip': {'required': False, 'category': ['provisioner'], 'type': str},
+    'jetson_model_path': {'required': False, 'category': ['application'], 'type': str},
+    'jetson_threshold': {'required': False, 'category': ['application'], 'type': float},
+    'jetson_target_cls': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_gpio_pin': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_sleep_sec': {'required': False, 'category': ['application'], 'type': float},
+    'docker_base_image': {'required': False, 'category': ['application'], 'type': str},
+    'model_url': {'required': False, 'category': ['application'], 'type': str},
+    'model_file_name': {'required': False, 'category': ['application'], 'type': str},
+    'app_entrypoint': {'required': False, 'category': ['application'], 'type': str},
+    'jetson_sensor_id': {'required': False, 'category': ['application'], 'type': int},
 }
 
 class Controller():
@@ -119,6 +136,8 @@ class Controller():
                 new = json.loads(val)
             except ValueError:
                 raise ControllerException(f'Invalid json passed to {key}:\n{val}')
+        elif target_type == float:
+            return float(val)
         else:
             raise ControllerException(f'Invalid type {target_type} for variable {key}.')
         return new

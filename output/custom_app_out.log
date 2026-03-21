@@ -1,0 +1,147 @@
+Starting custom Jetson inference app
+MODEL_PATH=./models/Yolo-cnw.pt
+OUTPUT_DIR=./outputs
+THRESHOLD=0.8
+TARGET_CLS=38
+GPIO_PIN=33
+SLEEP_SEC=0.05
+/usr/local/lib/python3.10/dist-packages/Jetson/GPIO/gpio_cdev.py:373: UserWarning: Could not open /dev/mem for pinmux check. If you want pinmux checks, make sure your user has permissions to read /dev/mem and that it exists. Error: [Errno 13] Permission denied: '/dev/mem'
+  warnings.warn('Could not open /dev/mem for pinmux check. If you want pinmux checks, make sure your user has permissions to read /dev/mem and that it exists. Error: ' + str(e))
+GPIO initialized
+Model loaded successfully
+Opening CSI camera...
+GST_ARGUS: Creating output stream
+CONSUMER: Waiting until producer is connected...
+GST_ARGUS: Available Sensor modes :
+GST_ARGUS: 3280 x 2464 FR = 21.000000 fps Duration = 47619048 ; Analog Gain range min 1.000000, max 10.625000; Exposure Range min 13000, max 683709000;
+
+GST_ARGUS: 3280 x 1848 FR = 28.000001 fps Duration = 35714284 ; Analog Gain range min 1.000000, max 10.625000; Exposure Range min 13000, max 683709000;
+
+GST_ARGUS: 1920 x 1080 FR = 29.999999 fps Duration = 33333334 ; Analog Gain range min 1.000000, max 10.625000; Exposure Range min 13000, max 683709000;
+
+GST_ARGUS: 1640 x 1232 FR = 29.999999 fps Duration = 33333334 ; Analog Gain range min 1.000000, max 10.625000; Exposure Range min 13000, max 683709000;
+
+GST_ARGUS: 1280 x 720 FR = 59.999999 fps Duration = 16666667 ; Analog Gain range min 1.000000, max 10.625000; Exposure Range min 13000, max 683709000;
+
+GST_ARGUS: Running with following settings:
+   Camera index = 0 
+   Camera mode  = 4 
+   Output Stream W = 1280 H = 720 
+   seconds to Run    = 0 
+   Frame Rate = 59.999999 
+GST_ARGUS: Setup Complete, Starting captures for 0 seconds
+GST_ARGUS: Starting repeat capture requests.
+CONSUMER: Producer has connected; continuing.
+[ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1100) open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+Camera opened successfully
+frame=1 weed_detected=False target_count=0 gpio=HIGH
+frame=2 weed_detected=False target_count=0 gpio=HIGH
+frame=3 weed_detected=False target_count=0 gpio=HIGH
+frame=4 weed_detected=False target_count=0 gpio=HIGH
+frame=5 weed_detected=False target_count=0 gpio=HIGH
+frame=6 weed_detected=False target_count=0 gpio=HIGH
+frame=7 weed_detected=False target_count=0 gpio=HIGH
+frame=8 weed_detected=False target_count=0 gpio=HIGH
+frame=9 weed_detected=False target_count=0 gpio=HIGH
+frame=10 weed_detected=False target_count=0 gpio=HIGH
+frame=11 weed_detected=False target_count=0 gpio=HIGH
+frame=12 weed_detected=False target_count=0 gpio=HIGH
+frame=13 weed_detected=False target_count=0 gpio=HIGH
+frame=14 weed_detected=False target_count=0 gpio=HIGH
+frame=15 weed_detected=False target_count=0 gpio=HIGH
+frame=16 weed_detected=False target_count=0 gpio=HIGH
+frame=17 weed_detected=False target_count=0 gpio=HIGH
+frame=18 weed_detected=False target_count=0 gpio=HIGH
+frame=19 weed_detected=False target_count=0 gpio=HIGH
+frame=20 weed_detected=False target_count=0 gpio=HIGH
+frame=21 weed_detected=False target_count=0 gpio=HIGH
+frame=22 weed_detected=False target_count=0 gpio=HIGH
+frame=23 weed_detected=False target_count=0 gpio=HIGH
+frame=24 weed_detected=False target_count=0 gpio=HIGH
+frame=25 weed_detected=False target_count=0 gpio=HIGH
+frame=26 weed_detected=False target_count=0 gpio=HIGH
+frame=27 weed_detected=False target_count=0 gpio=HIGH
+frame=28 weed_detected=False target_count=0 gpio=HIGH
+frame=29 weed_detected=False target_count=0 gpio=HIGH
+frame=30 weed_detected=False target_count=0 gpio=HIGH
+frame=31 weed_detected=False target_count=0 gpio=HIGH
+frame=32 weed_detected=False target_count=0 gpio=HIGH
+frame=33 weed_detected=False target_count=0 gpio=HIGH
+frame=34 weed_detected=False target_count=0 gpio=HIGH
+frame=35 weed_detected=False target_count=0 gpio=HIGH
+frame=36 weed_detected=False target_count=0 gpio=HIGH
+frame=37 weed_detected=False target_count=0 gpio=HIGH
+frame=38 weed_detected=False target_count=0 gpio=HIGH
+frame=39 weed_detected=False target_count=0 gpio=HIGH
+frame=40 weed_detected=False target_count=0 gpio=HIGH
+frame=41 weed_detected=False target_count=0 gpio=HIGH
+frame=42 weed_detected=False target_count=0 gpio=HIGH
+frame=43 weed_detected=False target_count=0 gpio=HIGH
+frame=44 weed_detected=False target_count=0 gpio=HIGH
+frame=45 weed_detected=False target_count=0 gpio=HIGH
+frame=46 weed_detected=False target_count=0 gpio=HIGH
+frame=47 weed_detected=False target_count=0 gpio=HIGH
+frame=48 weed_detected=False target_count=0 gpio=HIGH
+frame=49 weed_detected=False target_count=0 gpio=HIGH
+frame=50 weed_detected=False target_count=0 gpio=HIGH
+frame=51 weed_detected=False target_count=0 gpio=HIGH
+frame=52 weed_detected=False target_count=0 gpio=HIGH
+frame=53 weed_detected=False target_count=0 gpio=HIGH
+frame=54 weed_detected=False target_count=0 gpio=HIGH
+frame=55 weed_detected=False target_count=0 gpio=HIGH
+frame=56 weed_detected=False target_count=0 gpio=HIGH
+frame=57 weed_detected=False target_count=0 gpio=HIGH
+frame=58 weed_detected=False target_count=0 gpio=HIGH
+frame=59 weed_detected=False target_count=0 gpio=HIGH
+frame=60 weed_detected=False target_count=0 gpio=HIGH
+frame=61 weed_detected=False target_count=0 gpio=HIGH
+frame=62 weed_detected=False target_count=0 gpio=HIGH
+frame=63 weed_detected=False target_count=0 gpio=HIGH
+frame=64 weed_detected=False target_count=0 gpio=HIGH
+frame=65 weed_detected=False target_count=0 gpio=HIGH
+frame=66 weed_detected=False target_count=0 gpio=HIGH
+frame=67 weed_detected=False target_count=0 gpio=HIGH
+frame=68 weed_detected=False target_count=0 gpio=HIGH
+frame=69 weed_detected=False target_count=0 gpio=HIGH
+frame=70 weed_detected=False target_count=0 gpio=HIGH
+frame=71 weed_detected=False target_count=0 gpio=HIGH
+frame=72 weed_detected=False target_count=0 gpio=HIGH
+frame=73 weed_detected=False target_count=0 gpio=HIGH
+frame=74 weed_detected=False target_count=0 gpio=HIGH
+frame=75 weed_detected=False target_count=0 gpio=HIGH
+frame=76 weed_detected=False target_count=0 gpio=HIGH
+frame=77 weed_detected=False target_count=0 gpio=HIGH
+frame=78 weed_detected=False target_count=0 gpio=HIGH
+frame=79 weed_detected=False target_count=0 gpio=HIGH
+frame=80 weed_detected=False target_count=0 gpio=HIGH
+frame=81 weed_detected=False target_count=0 gpio=HIGH
+frame=82 weed_detected=False target_count=0 gpio=HIGH
+frame=83 weed_detected=False target_count=0 gpio=HIGH
+frame=84 weed_detected=False target_count=0 gpio=HIGH
+frame=85 weed_detected=False target_count=0 gpio=HIGH
+frame=86 weed_detected=False target_count=0 gpio=HIGH
+frame=87 weed_detected=False target_count=0 gpio=HIGH
+frame=88 weed_detected=False target_count=0 gpio=HIGH
+frame=89 weed_detected=False target_count=0 gpio=HIGH
+frame=90 weed_detected=False target_count=0 gpio=HIGH
+frame=91 weed_detected=False target_count=0 gpio=HIGH
+frame=92 weed_detected=False target_count=0 gpio=HIGH
+frame=93 weed_detected=False target_count=0 gpio=HIGH
+frame=94 weed_detected=False target_count=0 gpio=HIGH
+frame=95 weed_detected=False target_count=0 gpio=HIGH
+frame=96 weed_detected=False target_count=0 gpio=HIGH
+frame=97 weed_detected=False target_count=0 gpio=HIGH
+frame=98 weed_detected=False target_count=0 gpio=HIGH
+frame=99 weed_detected=False target_count=0 gpio=HIGH
+frame=100 weed_detected=False target_count=0 gpio=HIGH
+frame=101 weed_detected=False target_count=0 gpio=HIGH
+frame=102 weed_detected=False target_count=0 gpio=HIGH
+frame=103 weed_detected=False target_count=0 gpio=HIGH
+frame=104 weed_detected=False target_count=0 gpio=HIGH
+frame=105 weed_detected=False target_count=0 gpio=HIGH
+frame=106 weed_detected=False target_count=0 gpio=HIGH
+frame=107 weed_detected=False target_count=0 gpio=HIGH
+frame=108 weed_detected=False target_count=0 gpio=HIGH
+frame=109 weed_detected=False target_count=0 gpio=HIGH
+frame=110 weed_detected=False target_count=0 gpio=HIGH
+frame=111 weed_detected=False target_count=0 gpio=HIGH

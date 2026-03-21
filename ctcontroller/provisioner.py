@@ -39,21 +39,26 @@ class Provisioner:
     def __init__(self, cfg):
         self.site = cfg['target_site']
         self.user = cfg['requesting_user']
+
         # If the SSH key and key name were provided, use them.
         # Else try to use a service account.
         self.get_config(cfg['config_path'])
-        if ('ssh_key' in cfg and cfg['ssh_key'] is not None and cfg['ssh_key'] != ''
-            and 'key_name' in cfg and cfg['key_name'] is not None and cfg['key_name'] != ''
-            and (cfg['target_user'] is not None or not cfg['user_name_required'])):
+
+        if (
+            cfg.get('ssh_key') is not None and cfg.get('ssh_key') != ''
+            and cfg.get('key_name') is not None and cfg.get('key_name') != ''
+            and (cfg.get('target_user') is not None or not cfg.get('user_name_required', False))
+        ):
             self.private_key = cfg['ssh_key']
             self.key_name = cfg['key_name']
             self.use_service_acct = False
             LOGGER.info('Using user-provided credentials')
         else:
             self.lookup_auth(cfg['config_path'])
+
         self.ssh_key = {'name': self.key_name, 'path': self.private_key}
         self.num_nodes = cfg['num_nodes']
-        self.node_type  =cfg['node_type']
+        self.node_type = cfg['node_type']
         self.gpu = cfg['gpu']
         self.runner = None
         self.ip_addresses = None
