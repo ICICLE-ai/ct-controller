@@ -51,6 +51,11 @@ controller_vars = {
     'model_file_name': {'required': False, 'category': ['application'], 'type': str},
     'app_entrypoint': {'required': False, 'category': ['application'], 'type': str},
     'jetson_sensor_id': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_camera_width': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_camera_height': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_camera_fps': {'required': False, 'category': ['application'], 'type': int},
+    'jetson_sleep_sec': {'required': False, 'category': ['application'], 'type': float},
+    'model_id': {'required': False, 'category': ['application'], 'type': str},
 }
 
 class Controller():
