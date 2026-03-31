@@ -33,7 +33,20 @@ controller_vars = {
     'advanced_app_vars': {'required': False, 'category': ['application'], 'type': 'json'},
     'mode':              {'required': False, 'category': ['application'], 'type': str},
     'input_dataset_type':{'required': False, 'category': ['application'], 'type': str},
-    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str}
+    'config_path':       {'required': True,  'category': ['provisioner'], 'type': str},
+
+    'app_type':          {'required': False, 'category': ['application'], 'type': str}
+    # 'image_name':        {'required': False, 'category': ['application'], 'type': str},
+    # 'container_name':    {'required': False, 'category': ['application'], 'type': str},
+    # 'model_id':          {'required': False, 'category': ['application'], 'type': str},
+    # 'model_container_path': {'required': False, 'category': ['application'], 'type': str},
+    # 'threshold':         {'required': False, 'category': ['application'], 'type': str},
+    # 'target_cls':        {'required': False, 'category': ['application'], 'type': str},
+    # 'gpio_pin':          {'required': False, 'category': ['application'], 'type': str},
+    # 'sensor_id':         {'required': False, 'category': ['application'], 'type': str},
+    # 'camera_width':      {'required': False, 'category': ['application'], 'type': str},
+    # 'camera_height':     {'required': False, 'category': ['application'], 'type': str},
+    # 'camera_fps':        {'required': False, 'category': ['application'], 'type': str}
 }
 
 class Controller():

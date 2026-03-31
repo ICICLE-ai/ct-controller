@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, create_model, field_validator, model_validator
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from shutil import copyfileobj
 from pathlib import Path
 from os import environ
@@ -33,17 +33,38 @@ class AppOptions(BaseModel):
     input_set: Optional[str] = None
     input_dataset_type: Optional[str] = None
     ct_version: Optional[str] = 'latest'
-    advanced_app_vars: Optional[Dict[str, str]] = None
+    advanced_app_vars: Optional[Dict[str, Any]] = None
 
     @model_validator(mode='before')
     @classmethod
     def extract_advanced_options(cls, values):
-        declared_fields = set(cls.__fields__.keys())
-        advanced = {key: val for key, val in values.items() if key not in declared_fields}
-        for key in advanced:
+        if values is None:
+            return values
+
+        values = dict(values)
+
+        declared_fields = set(cls.model_fields.keys())
+
+        user_advanced = values.get('advanced_app_vars')
+        if user_advanced is None:
+            user_advanced = {}
+        elif not isinstance(user_advanced, dict):
+            raise ValueError('advanced_app_vars must be a JSON object')
+
+        extra_fields = {
+            key: val for key, val in values.items()
+            if key not in declared_fields
+        }
+
+        for key in extra_fields:
             values.pop(key)
-        values['advanced_app_vars'] = advanced
+
+        merged_advanced = dict(user_advanced)
+        merged_advanced.update(extra_fields)
+
+        values['advanced_app_vars'] = merged_advanced
         return values
+
 
 
 class CTControllerState:

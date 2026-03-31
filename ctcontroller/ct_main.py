@@ -3,9 +3,10 @@ The main module of the ctcontroller package.
 It contains the main function that runs the entire provision-run-shutdown-deprovision workflow.
 """
 import logging
-from .camera_traps import CameraTrapsManager as AppManager
+from .camera_traps import CameraTrapsManager
 from .controller import Controller
 from .util import ApplicationException, ProvisionException
+from .jetson_manager import JetsonManager
 
 LOGGER = logging.getLogger("CT Controller")
 
@@ -30,10 +31,23 @@ def setup(options: dict=None, job_local_log=False):
             app_log_dir = f'{controller.log_directory}/{controller.application_config["job_id"]}'
         else:
             app_log_dir = controller.log_directory
-        ctmanager = AppManager(provisioner.get_remote_runner(),
-                               log_dir=app_log_dir,
-                               cfg=controller.application_config,
-                               allow_attaching=provisioner.allow_attaching)
+
+        app_type = controller.application_config.get("app_type", "camera_traps")
+
+        if app_type == "jetson_infer":
+            ctmanager = JetsonManager(
+                provisioner.get_remote_runner(),
+                log_dir=app_log_dir,
+                cfg=controller.application_config,
+                allow_attaching=provisioner.allow_attaching
+            )
+        else:
+            ctmanager = CameraTrapsManager(
+                provisioner.get_remote_runner(),
+                log_dir=app_log_dir,
+                cfg=controller.application_config,
+                allow_attaching=provisioner.allow_attaching
+            )
     except ApplicationException as e:
         LOGGER.exception(e.msg)
         ctmanager.shutdown_job()
