@@ -17,64 +17,82 @@ class JetsonManager(ApplicationManager):
     def update_config(self, cfg):
         changed = super().update_config(cfg)
 
-        new_run_dir = cfg.get('run_dir', f'{self.runner.home_dir}/jetson_run')
+        advanced = cfg.get("advanced_app_vars") or {}
+        jetson_cfg = advanced.get("jetson", {})
+
+        def pick(name, default=None):
+            if name in jetson_cfg:
+                return jetson_cfg[name]
+            return cfg.get(name, default)
+
+        new_run_dir = pick('run_dir', f'{self.runner.home_dir}/jetson_run')
         if not hasattr(self, 'run_dir') or self.run_dir != new_run_dir:
             self.run_dir = new_run_dir
             changed = True
 
-        new_image_name = cfg.get('image_name', 'habg21/jetson-weed-infer')
+        new_image_name = pick('image_name', 'habg21/jetson-weed-infer')
         if not hasattr(self, 'image_name') or self.image_name != new_image_name:
             self.image_name = new_image_name
             changed = True
 
-        new_container_name = cfg.get('container_name', 'weed_infer_test')
+        new_container_name = pick('container_name', 'weed_infer_test')
         if not hasattr(self, 'container_name') or self.container_name != new_container_name:
             self.container_name = new_container_name
             changed = True
 
-        new_model_id = cfg.get('model_id')
+        new_model_id = pick('model_id')
         if not hasattr(self, 'model_id') or self.model_id != new_model_id:
             self.model_id = new_model_id
             changed = True
 
-        new_model_container_path = cfg.get('model_container_path', '/workspace/model.pt')
+        new_model_container_path = pick('model_container_path', '/workspace/model.pt')
         if not hasattr(self, 'model_container_path') or self.model_container_path != new_model_container_path:
             self.model_container_path = new_model_container_path
             changed = True
 
-        new_threshold = cfg.get('threshold', '0.8')
+        new_threshold = pick('threshold', '0.8')
         if not hasattr(self, 'threshold') or self.threshold != new_threshold:
             self.threshold = new_threshold
             changed = True
 
-        new_target_cls = cfg.get('target_cls', '38')
+        new_target_cls = pick('target_cls', '38')
         if not hasattr(self, 'target_cls') or self.target_cls != new_target_cls:
             self.target_cls = new_target_cls
             changed = True
 
-        new_gpio_pin = cfg.get('gpio_pin', '33')
+        new_gpio_pin = pick('gpio_pin', '33')
         if not hasattr(self, 'gpio_pin') or self.gpio_pin != new_gpio_pin:
             self.gpio_pin = new_gpio_pin
             changed = True
 
-        new_sensor_id = cfg.get('sensor_id', '0')
+        new_sensor_id = pick('sensor_id', '0')
         if not hasattr(self, 'sensor_id') or self.sensor_id != new_sensor_id:
             self.sensor_id = new_sensor_id
             changed = True
 
-        new_camera_width = cfg.get('camera_width', '1080')
+        new_camera_width = pick('camera_width', '1080')
         if not hasattr(self, 'camera_width') or self.camera_width != new_camera_width:
             self.camera_width = new_camera_width
             changed = True
 
-        new_camera_height = cfg.get('camera_height', '720')
+        new_camera_height = pick('camera_height', '720')
         if not hasattr(self, 'camera_height') or self.camera_height != new_camera_height:
             self.camera_height = new_camera_height
             changed = True
 
-        new_camera_fps = cfg.get('camera_fps', '60')
+        new_camera_fps = pick('camera_fps', '60')
         if not hasattr(self, 'camera_fps') or self.camera_fps != new_camera_fps:
             self.camera_fps = new_camera_fps
+            changed = True
+
+        new_display = pick('display', ':0')
+        if not hasattr(self, 'display') or self.display != new_display:
+            self.display = new_display
+            changed = True
+
+        new_gpio_init_cmd = pick('gpio_init_cmd')
+        if not hasattr(self, 'gpio_init_cmd') or self.gpio_init_cmd != new_gpio_init_cmd:
+            self.gpio_init_cmd = new_gpio_init_cmd
             changed = True
 
         return changed
@@ -96,6 +114,9 @@ class JetsonManager(ApplicationManager):
     def configure_app(self):
         if not self.model_id:
             raise ApplicationException('model_id is required')
+
+        LOGGER.info("Pulling the required application image: %s", self.image_name)
+        self.runner.run(f'docker pull {self.image_name}')
 
         model_url = self.resolve_model_url_from_patra(self.model_id)
         remote_model_path = f'{self.run_dir}/models/model.pt'
